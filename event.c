@@ -5,11 +5,11 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-inline bool event_is_custom(size_t event) {
+bool event_is_custom(size_t event) {
     return (event & CUSTOM_IDENTIFIER);
 }
 
-inline size_t get_custom_event_local_id(size_t event) {
+size_t get_custom_event_local_id(size_t event) {
     return (event ^ CUSTOM_IDENTIFIER);
 }
 

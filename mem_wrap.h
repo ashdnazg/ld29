@@ -9,7 +9,7 @@ extern "C" {
 #include <stdlib.h>
 
 
-unsigned int g_mem_mem_allocs_count;
+extern unsigned int g_mem_mem_allocs_count;
 
 
 void mem_wrap_init();

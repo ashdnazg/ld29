@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <assert.h>
 
+unsigned int g_mem_mem_allocs_count;
+
 void * mem_alloc(size_t size) {
     void *ptr = malloc(size);
     assert(ptr != NULL);

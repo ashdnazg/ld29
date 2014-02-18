@@ -19,8 +19,8 @@ typedef struct events_map_s events_map_t;
 #include "int_list.h"
 
 #define CUSTOM_IDENTIFIER 0x10000000
-#define CUSTOM_EVENT(name) DECLARE_EVENT(name) | CUSTOM_IDENTIFIER
 #define DECLARE_EVENT(var) __CUSTOM_EVENT_ ## var
+#define CUSTOM_EVENT(name) (DECLARE_EVENT(name) | CUSTOM_IDENTIFIER)
 #define IMPORTED_EVENTS enum __IMPORTED_EVENTS {
 #define END_IMPORTED_EVENTS ,__IMPORTED_EVENTS_COUNT};
 
