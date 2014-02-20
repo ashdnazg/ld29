@@ -34,7 +34,7 @@ typedef ___maybe __maybe;
 #define UNMAYBE(var) (var.ptr)
 #define MAYBIFY(var) _MAYBIFY((void *) var)
 
-inline __maybe _MAYBIFY(void *var);
+__maybe _MAYBIFY(void *var);
 
 #else
 

@@ -13,7 +13,7 @@ IMPORTED_EVENTS
 END_IMPORTED_EVENTS
 
 
-int main() {
+int main(int argc, char* argv[]) {
     mem_wrap_init();
     system_t sys;
     events_map_t map;
@@ -37,7 +37,7 @@ int main() {
     
     system_clean(&sys);
     printf("system_cleaned\n");
-    
+
     mem_wrap_print_mallocs();
     return 0;
 }

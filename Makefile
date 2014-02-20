@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -g
+CFLAGS = -pedantic -std=c99 -Wall -g
 C_FILES = event.c \
           int_list.c \
           mem_wrap.c \
@@ -15,10 +15,14 @@ HEADER_FILES = event.h \
                system.h
 
 OBJECT_FILES = $(C_FILES:.c=.o)
-
-$(OBJECT_FILES): $(HEADER_FILES)
-
+    
 all:
+	@echo nothing here at the moment
+
+.PHONY: all test
+
+#$(OBJECT_FILES): $(HEADER_FILES)
+
 
 test: events_test
 
@@ -33,3 +37,4 @@ clean:
 	rm -f $(OBJECT_FILES)
 	rm -f events_test.o
 	rm -f events_test.exe
+    
