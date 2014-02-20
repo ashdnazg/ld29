@@ -8,9 +8,10 @@ extern "C" {
 #include "macros.h"
 
 
-typedef struct event_e event_t;
+typedef struct event_s event_t;
 typedef struct event_array_s event_array_t;
 typedef struct events_map_s events_map_t;
+typedef struct events_list_s events_list_t;
 
 
 #include <stdlib.h>
@@ -28,14 +29,20 @@ typedef struct events_map_s events_map_t;
 #define EVENT_NAME_MAX_LENGTH 100
 typedef void (*event_hook_t)(system_t *system, MAYBE(void *) params);
 
-struct event_e {
+struct event_s {
+    link_t events_link;
     event_type_t type;
-    void *params;
+    MAYBE(void *) params;
 };
 
 struct event_array_s {
     size_t count;
     event_t *events;
+};
+
+struct events_list_s {
+    bool running;
+    list_t events;
 };
 
 struct events_map_s {
@@ -86,6 +93,8 @@ void _events_map_import(events_map_t *events_map, system_t *system, const char *
 void events_map_register_hook(events_map_t *events_map, system_t *system, event_hook_t hook, event_type_t event);
 
 void events_map_process_pending(events_map_t *events_map);
+
+void events_map_loop(events_map_t *events_map);
 
 void events_map_clean(events_map_t *events_map);
 

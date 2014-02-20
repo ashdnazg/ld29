@@ -15,7 +15,7 @@ size_t get_custom_event_local_id(size_t event) {
 
 void events_map_init(events_map_t *events_map) {
     events_map->initialized = FALSE;
-    events_map->count = EVENT_COUNT;
+    events_map->count = EVENTS_COUNT;
     events_map->hooks_map = NULL;
     list_init(&(events_map->pending_imports), pending_import_t, pending_imports_link);
     list_init(&(events_map->pending_exports), pending_export_t, pending_exports_link);
@@ -43,6 +43,49 @@ void _events_map_import(events_map_t *events_map, system_t *system, const char *
     
     list_insert_tail(&(events_map->pending_imports), pending_import);
 }
+
+event_t * event_new(event_type_t event_type, MAYBE(void *) params) {
+    event_t *event = mem_alloc(sizeof(*event));
+    link_init(&(event->events_link));
+    event->type = event_type;
+    event->params = params;
+    
+    return event;
+}
+
+void event_free(event_t * event) {
+    link_remove_from_list(&(event->events_link));
+    if (UNMAYBE(event->params) != NULL) {
+        mem_free(UNMAYBE(event->params));
+    }
+    mem_free(event);
+}
+
+
+void add_event(events_list_t *events_list, event_type_t event_type, MAYBE(void *) params) {    
+    list_insert_tail(&(events_list->events), event_new(event_type, params));
+}
+
+void events_map_loop(events_map_t *events_map) {
+    events_list_t events_list;
+    event_t * current_event;
+    list_init(&(events_list.events), event_t, events_link);
+    events_list.running = TRUE;
+    add_event(&events_list, EVENT_NEW_STEP, MAYBIFY(NULL));
+    
+    while (events_list.running && !list_is_empty(&(events_list.events))) {
+        current_event = (event_t *) list_head(&(events_list.events));
+        list_for_each(&(events_map->hooks_map[(size_t) (current_event->type)]), registered_hook_t *, registered_hook) {
+            registered_hook->hook(registered_hook->system, current_event->params);
+        }
+        event_free(current_event);
+    }
+    list_for_each(&(events_list.events), event_t *, event) {
+        event_free(event);
+    }
+}
+
+
 
 registered_hook_t * registered_hook_new(system_t *system, event_hook_t hook) {
     registered_hook_t *registered_hook = mem_alloc(sizeof(*registered_hook));
@@ -108,7 +151,7 @@ void events_map_process_pending(events_map_t *events_map) {
     
     list_sort(&(events_map->pending_imports), (cmp_cb_t) compare_pending_imports);
     list_sort(&(events_map->pending_exports), (cmp_cb_t) compare_pending_exports);
-    i = EVENT_COUNT;
+    i = EVENTS_COUNT;
     list_for_each(&(events_map->pending_exports), pending_export_t *, pending_export) {
         if (next_pending_export != NULL && compare_pending_exports(next_pending_export, pending_export)) {
             //printf("Two events with the name: %s\n", pending_export->name);
