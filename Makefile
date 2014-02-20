@@ -21,7 +21,7 @@ all:
 
 .PHONY: all test
 
-#$(OBJECT_FILES): $(HEADER_FILES)
+$(OBJECT_FILES): $(HEADER_FILES)
 
 
 test: events_test
