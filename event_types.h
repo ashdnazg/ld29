@@ -11,6 +11,7 @@ typedef enum event_type_e {
     EVENT_NEW_FRAME,
     EVENT_EXIT,
     EVENT_PAUSE,
+    EVENT_LOG,
     
     EVENTS_COUNT,
 } event_type_t;

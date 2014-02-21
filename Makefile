@@ -4,7 +4,8 @@ C_FILES = event.c \
           int_list.c \
           mem_wrap.c \
           macros.c \
-          system.c
+          system.c \
+          logger.c
           
           
 HEADER_FILES = event.h \
@@ -12,7 +13,8 @@ HEADER_FILES = event.h \
                mem_wrap.h \
                macros.h \
                event_types.h \
-               system.h
+               system.h \
+               logger.h
 
 OBJECT_FILES = $(C_FILES:.c=.o)
     

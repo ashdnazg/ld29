@@ -28,13 +28,24 @@ typedef int bool;
 
 typedef struct {
     void *ptr;
-} ___maybe;
-typedef ___maybe __maybe;
+} __maybe;
+
+typedef void (*__func_ptr)();
+
+typedef struct {
+    __func_ptr ptr;
+} __maybe_func;
+
+ 
 #define MAYBE(type_name) __maybe
 #define UNMAYBE(var) (var.ptr)
 #define MAYBIFY(var) _MAYBIFY((void *) var)
 
+#define MAYBE_FUNC(func) __maybe_func
+#define MAYBIFY_FUNC(func) _MAYBIFY_FUNC((__func_ptr) func) 
+
 __maybe _MAYBIFY(void *var);
+__maybe_func _MAYBIFY_FUNC(__func_ptr var);
 
 #else
 

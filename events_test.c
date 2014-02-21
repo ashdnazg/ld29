@@ -3,6 +3,7 @@
 #include "event.h"
 #include "event_types.h"
 #include "mem_wrap.h"
+#include "logger.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -13,9 +14,9 @@ IMPORTED_EVENTS
     DECLARE_EVENT(event3)
 END_IMPORTED_EVENTS
 
-void print_something(system_t *system, MAYBE(void *) params) {
-    if (UNMAYBE(params) != NULL) {
-        char *str = (char *) UNMAYBE(params);
+void print_something(events_list_t *events_list, system_t *system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    if (UNMAYBE(sender_params) != NULL) {
+        char *str = (char *) UNMAYBE(sender_params);
         printf("%s\n", str);
     } else {
         printf("No params\n");
@@ -25,23 +26,25 @@ void print_something(system_t *system, MAYBE(void *) params) {
 int main(int argc, char* argv[]) {
     mem_wrap_init();
     system_t sys;
+    system_t logger;
     events_map_t map;
     events_map_init(&map);
     system_init(&sys, "system");
-    events_map_export(&map, "exevent");
-    events_map_export(&map, "event1");
-    events_map_export(&map, "event2");
-    events_map_export(&map, "event3");
+    init_logger(&map, &logger);
+    events_map_export(&map, "exevent", MAYBIFY_FUNC(NULL));
+    events_map_export(&map, "event1", MAYBIFY_FUNC(NULL));
+    events_map_export(&map, "event2", MAYBIFY_FUNC(NULL));
+    events_map_export(&map, "event3", MAYBIFY_FUNC(NULL));
     events_map_import(&map, &sys, event1);
     events_map_import(&map, &sys, event2);
     events_map_import(&map, &sys, event3);
     //events_map_register_hook(&map, &sys, NULL, EVENT_NEW_FRAME);
     //events_map_register_hook(&map, &sys, NULL, EVENT_NEW_FRAME);
     //events_map_register_hook(&map, &sys, NULL, CUSTOM_EVENT(event2));
-    events_map_register_hook(&map, &sys, print_something, EVENT_NEW_STEP);
-    events_map_register_hook(&map, &sys, print_something, EVENT_NEW_STEP);
-    events_map_register_hook(&map, &sys, print_something, EVENT_NEW_STEP);
-    events_map_register_hook(&map, &sys, print_something, EVENT_NEW_STEP);
+    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
+    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
+    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
+    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
     events_map_process_pending(&map);
     printf("processed\n");
     
@@ -53,6 +56,7 @@ int main(int argc, char* argv[]) {
     printf("events_cleaned\n");
     
     system_clean(&sys);
+    system_clean(&logger);
     printf("system_cleaned\n");
 
     mem_wrap_print_mallocs();

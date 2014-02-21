@@ -24,11 +24,11 @@ void events_map_init(events_map_t *events_map) {
 
 
 
-void events_map_export(events_map_t *events_map, const char *name) {
+void events_map_export(events_map_t *events_map, const char *name, MAYBE_FUNC(free_callback_t) sender_params_free) {
     pending_export_t *pending_export = mem_alloc(sizeof(*pending_export));
     link_init(&(pending_export->pending_exports_link));
     pending_export->name = name;
-    
+    pending_export->sender_params_free = sender_params_free;
     list_insert_tail(&(events_map->pending_exports), pending_export);
     events_map->count += 1;
 }
@@ -44,26 +44,26 @@ void _events_map_import(events_map_t *events_map, system_t *system, const char *
     list_insert_tail(&(events_map->pending_imports), pending_import);
 }
 
-event_t * event_new(event_type_t event_type, MAYBE(void *) params) {
+event_t * event_new(event_type_t event_type, MAYBE(void *) sender_params) {
     event_t *event = mem_alloc(sizeof(*event));
     link_init(&(event->events_link));
     event->type = event_type;
-    event->params = params;
+    event->sender_params = sender_params;
     
     return event;
 }
 
-void event_free(event_t * event) {
+void event_free(events_map_t *events_map, event_t * event) {
     link_remove_from_list(&(event->events_link));
-    if (UNMAYBE(event->params) != NULL) {
-        mem_free(UNMAYBE(event->params));
+    if (UNMAYBE(event->sender_params) != NULL && UNMAYBE(events_map->sender_params_free[event->type]) != NULL) {
+        ((free_callback_t) UNMAYBE(events_map->sender_params_free[event->type]))(UNMAYBE(event->sender_params));
     }
     mem_free(event);
 }
 
 
-void add_event(events_list_t *events_list, event_type_t event_type, MAYBE(void *) params) {    
-    list_insert_tail(&(events_list->events), event_new(event_type, params));
+void add_event(events_list_t *events_list, event_type_t event_type, MAYBE(void *) sender_params) {
+    list_insert_tail(&(events_list->events), event_new(event_type, sender_params));
 }
 
 void events_map_loop(events_map_t *events_map) {
@@ -71,40 +71,45 @@ void events_map_loop(events_map_t *events_map) {
     event_t * current_event;
     list_init(&(events_list.events), event_t, events_link);
     events_list.running = TRUE;
-    add_event(&events_list, EVENT_NEW_STEP, MAYBIFY(NULL));
+    add_event(&events_list, EVENT_LOG, MAYBIFY(strdup("Message")));
     
     while (events_list.running && !list_is_empty(&(events_list.events))) {
         current_event = (event_t *) list_head(&(events_list.events));
         list_for_each(&(events_map->hooks_map[(size_t) (current_event->type)]), registered_hook_t *, registered_hook) {
-            registered_hook->hook(registered_hook->system, current_event->params);
+            registered_hook->hook(&events_list, registered_hook->system, registered_hook->system_params, current_event->sender_params);
         }
-        event_free(current_event);
+        event_free(events_map, current_event);
     }
     list_for_each(&(events_list.events), event_t *, event) {
-        event_free(event);
+        event_free(events_map, event);
     }
 }
 
 
 
-registered_hook_t * registered_hook_new(system_t *system, event_hook_t hook) {
+registered_hook_t * registered_hook_new(event_hook_t hook, system_t *system, MAYBE(void *) system_params, MAYBE_FUNC(free_callback_t) system_params_free) {
     registered_hook_t *registered_hook = mem_alloc(sizeof(*registered_hook));
     link_init(&(registered_hook->hooks_link));
-    registered_hook->system = system;
     registered_hook->hook = hook;
+    registered_hook->system = system;
+    registered_hook->system_params = system_params;
+    registered_hook->system_params_free = system_params_free;
     
     return registered_hook;
 }
 
 void registered_hook_free(registered_hook_t *registered_hook) {
     link_remove_from_list(&(registered_hook->hooks_link));
+    if (UNMAYBE(registered_hook->system_params) != NULL && UNMAYBE(registered_hook->system_params_free) != NULL) {
+        ((free_callback_t) UNMAYBE(registered_hook->system_params_free))(UNMAYBE(registered_hook->system_params));
+    }
     mem_free(registered_hook);
 }
 
-void events_map_register_hook(events_map_t *events_map, system_t *system, event_hook_t hook, size_t event_id) {
+void events_map_register_hook(events_map_t *events_map, system_t *system, event_hook_t hook, MAYBE(void *) system_params, size_t event_id, MAYBE_FUNC(free_callback_t) system_params_free) {
     pending_hook_t *pending_hook = mem_alloc(sizeof(*pending_hook));
     link_init(&(pending_hook->pending_hooks_link));
-    pending_hook->registered_hook = registered_hook_new(system, hook);
+    pending_hook->registered_hook = registered_hook_new(hook, system, system_params, system_params_free);
     pending_hook->event_id = event_id;
     
     list_insert_tail(&(events_map->pending_hooks), pending_hook);
@@ -136,12 +141,22 @@ void pending_hook_free(pending_hook_t *pending_hook) {
     mem_free(pending_hook);
 }
 
+void init_builtin_events(events_map_t *events_map) {
+    events_map->sender_params_free[EVENT_LOG] = MAYBIFY_FUNC(mem_free);
+}
+
 void events_map_process_pending(events_map_t *events_map) {
     int i;
     int cmp;
     int map_index;
     list_t *list_ptr = NULL;
-    events_map->hooks_map = mem_alloc(sizeof(*events_map->hooks_map) * events_map->count);
+    events_map->hooks_map = mem_alloc(sizeof(*(events_map->hooks_map)) * events_map->count);
+    events_map->sender_params_free = mem_alloc(sizeof(*(events_map->sender_params_free)) * events_map->count);
+    
+    for (i = 0; i < events_map->count; ++i) {
+        events_map->sender_params_free[i] = MAYBIFY_FUNC(NULL);
+    }
+    init_builtin_events(events_map);
     
     list_ptr = events_map->hooks_map;
     for (i = 0; i < events_map->count; ++i) {
@@ -169,6 +184,7 @@ void events_map_process_pending(events_map_t *events_map) {
             }
             
         }
+        events_map->sender_params_free[i] = pending_export->sender_params_free;
         pending_export_free(pending_export);
         ++i;
     }
@@ -199,6 +215,7 @@ void events_map_clean(events_map_t *events_map) {
         }
         mem_free(events_map->hooks_map);
     }
+    mem_free(events_map->sender_params_free);
     list_for_each(&(events_map->pending_imports), pending_import_t *, pending_import) {
         pending_import_free(pending_import);
     }

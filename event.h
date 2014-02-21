@@ -27,12 +27,13 @@ typedef struct events_list_s events_list_t;
 
 
 #define EVENT_NAME_MAX_LENGTH 100
-typedef void (*event_hook_t)(system_t *system, MAYBE(void *) params);
+typedef void (*event_hook_t)(events_list_t *events_list, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params);
+typedef void (*free_callback_t)(void *);
 
 struct event_s {
     link_t events_link;
     event_type_t type;
-    MAYBE(void *) params;
+    MAYBE(void *) sender_params;
 };
 
 struct event_array_s {
@@ -49,6 +50,7 @@ struct events_map_s {
     bool initialized;
     size_t count;
     list_t *hooks_map;
+    MAYBE_FUNC(free_callback_t) *sender_params_free;
     list_t pending_imports;
     list_t pending_exports;
     list_t pending_hooks;
@@ -58,6 +60,8 @@ typedef struct registered_hook_s {
     link_t hooks_link;
     event_hook_t hook;
     system_t *system;
+    MAYBE(void *) system_params;
+    MAYBE_FUNC(free_callback_t) system_params_free;
 } registered_hook_t;
 
 typedef struct pending_import_s {
@@ -70,6 +74,7 @@ typedef struct pending_import_s {
 typedef struct pending_export_s {
     link_t pending_exports_link;
     const char *name;
+    MAYBE_FUNC(free_callback_t) sender_params_free;
 } pending_export_t;
 
 typedef struct pending_hook_s {
@@ -80,7 +85,7 @@ typedef struct pending_hook_s {
 
 void events_map_init(events_map_t *events_map);
 
-void events_map_export(events_map_t *events_map, const char *name); 
+void events_map_export(events_map_t *events_map, const char *name, MAYBE_FUNC(free_callback_t) sender_params_free);
 
 #define events_map_import(map, system, name) \
     do { \
@@ -90,7 +95,7 @@ void events_map_export(events_map_t *events_map, const char *name);
 
 void _events_map_import(events_map_t *events_map, system_t *system, const char *name, size_t local_index);
 
-void events_map_register_hook(events_map_t *events_map, system_t *system, event_hook_t hook, event_type_t event);
+void events_map_register_hook(events_map_t *events_map, system_t *system, event_hook_t hook, MAYBE(void *) system_params, size_t event_id, MAYBE_FUNC(free_callback_t) system_params_free);
 
 void events_map_process_pending(events_map_t *events_map);
 
