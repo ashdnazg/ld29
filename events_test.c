@@ -1,7 +1,7 @@
 #include "system.h"
 #include "macros.h"
 #include "event.h"
-#include "event_types.h"
+#include "builtin_events.h"
 #include "mem_wrap.h"
 #include "logger.h"
 #include <stdlib.h>
@@ -9,12 +9,12 @@
 
 
 IMPORTED_EVENTS
-    DECLARE_EVENT(event1),
-    DECLARE_EVENT(event2),
-    DECLARE_EVENT(event3)
+    CUSTOM_EVENT(event1),
+    CUSTOM_EVENT(event2),
+    CUSTOM_EVENT(event3)
 END_IMPORTED_EVENTS
 
-void print_something(events_list_t *events_list, system_t *system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+void print_something(events_queue_t *events_queue, system_t *system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     if (UNMAYBE(sender_params) != NULL) {
         char *str = (char *) UNMAYBE(sender_params);
         printf("%s\n", str);
@@ -38,9 +38,6 @@ int main(int argc, char* argv[]) {
     events_map_import(&map, &sys, event1);
     events_map_import(&map, &sys, event2);
     events_map_import(&map, &sys, event3);
-    //events_map_register_hook(&map, &sys, NULL, EVENT_NEW_FRAME);
-    //events_map_register_hook(&map, &sys, NULL, EVENT_NEW_FRAME);
-    //events_map_register_hook(&map, &sys, NULL, CUSTOM_EVENT(event2));
     events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
     events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
     events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));

@@ -7,6 +7,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 #include <stdlib.h>
+#include <stdint.h>
 #define UNDEFINED_ID -1
 
 typedef struct system_s system_t;
@@ -18,7 +19,7 @@ typedef void (*system_init_func_t)(events_map_t *event_map, system_t *system);
 struct system_s {
     int id;
     const char *name;
-    size_t *local_events_map;
+    uint32_t *local_events_map;
 };
 
 

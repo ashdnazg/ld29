@@ -5,13 +5,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-bool event_is_custom(size_t event) {
-    return (event & CUSTOM_IDENTIFIER);
-}
-
-size_t get_custom_event_local_id(size_t event) {
-    return (event ^ CUSTOM_IDENTIFIER);
-}
 
 void events_map_init(events_map_t *events_map) {
     events_map->initialized = FALSE;
@@ -34,7 +27,7 @@ void events_map_export(events_map_t *events_map, const char *name, MAYBE_FUNC(fr
 }
 
 
-void _events_map_import(events_map_t *events_map, system_t *system, const char *name, size_t local_index) {
+void _events_map_import(events_map_t *events_map, system_t *system, const char *name, uint32_t local_index) {
     pending_import_t *pending_import = mem_alloc(sizeof(*pending_import));
     link_init(&(pending_import->pending_imports_link));
     pending_import->name = name;
@@ -44,10 +37,10 @@ void _events_map_import(events_map_t *events_map, system_t *system, const char *
     list_insert_tail(&(events_map->pending_imports), pending_import);
 }
 
-event_t * event_new(event_type_t event_type, MAYBE(void *) sender_params) {
+event_t * event_new(uint32_t type, MAYBE(void *) sender_params) {
     event_t *event = mem_alloc(sizeof(*event));
     link_init(&(event->events_link));
-    event->type = event_type;
+    event->type = type;
     event->sender_params = sender_params;
     
     return event;
@@ -62,25 +55,25 @@ void event_free(events_map_t *events_map, event_t * event) {
 }
 
 
-void add_event(events_list_t *events_list, event_type_t event_type, MAYBE(void *) sender_params) {
-    list_insert_tail(&(events_list->events), event_new(event_type, sender_params));
+void push_event(events_queue_t *events_queue, uint32_t type, MAYBE(void *) sender_params) {
+    list_insert_tail(&(events_queue->events), event_new(type, sender_params));
 }
 
 void events_map_loop(events_map_t *events_map) {
-    events_list_t events_list;
+    events_queue_t events_queue;
     event_t * current_event;
-    list_init(&(events_list.events), event_t, events_link);
-    events_list.running = TRUE;
-    add_event(&events_list, EVENT_LOG, MAYBIFY(strdup("Message")));
+    list_init(&(events_queue.events), event_t, events_link);
+    events_queue.running = TRUE;
+    push_event(&events_queue, EVENT_LOG, MAYBIFY(strdup("Message")));
     
-    while (events_list.running && !list_is_empty(&(events_list.events))) {
-        current_event = (event_t *) list_head(&(events_list.events));
-        list_for_each(&(events_map->hooks_map[(size_t) (current_event->type)]), registered_hook_t *, registered_hook) {
-            registered_hook->hook(&events_list, registered_hook->system, registered_hook->system_params, current_event->sender_params);
+    while (events_queue.running && !list_is_empty(&(events_queue.events))) {
+        current_event = (event_t *) list_head(&(events_queue.events));
+        list_for_each(&(events_map->hooks_map[(uint32_t) (current_event->type)]), registered_hook_t *, registered_hook) {
+            registered_hook->hook(&events_queue, registered_hook->system, registered_hook->system_params, current_event->sender_params);
         }
         event_free(events_map, current_event);
     }
-    list_for_each(&(events_list.events), event_t *, event) {
+    list_for_each(&(events_queue.events), event_t *, event) {
         event_free(events_map, event);
     }
 }
@@ -106,7 +99,7 @@ void registered_hook_free(registered_hook_t *registered_hook) {
     mem_free(registered_hook);
 }
 
-void events_map_register_hook(events_map_t *events_map, system_t *system, event_hook_t hook, MAYBE(void *) system_params, size_t event_id, MAYBE_FUNC(free_callback_t) system_params_free) {
+void events_map_register_hook(events_map_t *events_map, system_t *system, event_hook_t hook, MAYBE(void *) system_params, uint32_t event_id, MAYBE_FUNC(free_callback_t) system_params_free) {
     pending_hook_t *pending_hook = mem_alloc(sizeof(*pending_hook));
     link_init(&(pending_hook->pending_hooks_link));
     pending_hook->registered_hook = registered_hook_new(hook, system, system_params, system_params_free);
@@ -148,7 +141,6 @@ void init_builtin_events(events_map_t *events_map) {
 void events_map_process_pending(events_map_t *events_map) {
     int i;
     int cmp;
-    int map_index;
     list_t *list_ptr = NULL;
     events_map->hooks_map = mem_alloc(sizeof(*(events_map->hooks_map)) * events_map->count);
     events_map->sender_params_free = mem_alloc(sizeof(*(events_map->sender_params_free)) * events_map->count);
@@ -189,12 +181,7 @@ void events_map_process_pending(events_map_t *events_map) {
         ++i;
     }
     list_for_each(&(events_map->pending_hooks), pending_hook_t *, pending_hook) {
-        if (event_is_custom(pending_hook->event_id)) {
-            map_index = pending_hook->registered_hook->system->local_events_map[get_custom_event_local_id(pending_hook->event_id)];
-        } else {
-            map_index = pending_hook->event_id;
-        }
-        list_insert_tail(&(events_map->hooks_map[map_index]), pending_hook->registered_hook);
+        list_insert_tail(&(events_map->hooks_map[pending_hook->event_id]), pending_hook->registered_hook);
         //printf("Registered hook for event: %d\n", map_index);
         pending_hook_free(pending_hook);
     }

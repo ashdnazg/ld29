@@ -12,7 +12,7 @@ HEADER_FILES = event.h \
                int_list.h \
                mem_wrap.h \
                macros.h \
-               event_types.h \
+               builtin_events.h \
                system.h \
                logger.h
 
