@@ -3,7 +3,7 @@
 #include "event.h"
 #include "builtin_events.h"
 #include "mem_wrap.h"
-#include "logger.h"
+//#include "systems/logger/logger.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -26,11 +26,11 @@ void print_something(events_queue_t *events_queue, system_t *system, MAYBE(void 
 int main(int argc, char* argv[]) {
     mem_wrap_init();
     system_t sys;
-    system_t logger;
+    //system_t logger;
     events_map_t map;
     events_map_init(&map);
     system_init(&sys, "system");
-    init_logger(&map, &logger);
+    //init_logger(&map, &logger);
     events_map_export(&map, "exevent", MAYBIFY_FUNC(NULL));
     events_map_export(&map, "event1", MAYBIFY_FUNC(NULL));
     events_map_export(&map, "event2", MAYBIFY_FUNC(NULL));
@@ -53,7 +53,7 @@ int main(int argc, char* argv[]) {
     printf("events_cleaned\n");
     
     system_clean(&sys);
-    system_clean(&logger);
+    //system_clean(&logger);
     printf("system_cleaned\n");
 
     mem_wrap_print_mallocs();

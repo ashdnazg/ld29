@@ -1,11 +1,11 @@
 CC = gcc
 CFLAGS = -pedantic -std=c99 -Wall -g
+TEST_LIB = libaesis.a
 C_FILES = event.c \
           int_list.c \
           mem_wrap.c \
           macros.c \
           system.c \
-          logger.c
           
           
 HEADER_FILES = event.h \
@@ -14,7 +14,6 @@ HEADER_FILES = event.h \
                macros.h \
                builtin_events.h \
                system.h \
-               logger.h
 
 OBJECT_FILES = $(C_FILES:.c=.o)
     
@@ -26,17 +25,16 @@ all:
 $(OBJECT_FILES): $(HEADER_FILES)
 
 
-test: events_test
+test: $(OBJECT_FILES) $(TEST_LIB)
+	cd tests && $(MAKE)
 
-events_test.o : $(HEADER_FILES)
-
-events_test: events_test.o $(OBJECT_FILES)
-	$(CC) $(CFLAGS) $(LDFLAGS) events_test.o $(OBJECT_FILES) -o events_test.exe
+$(TEST_LIB): $(OBJECT_FILES)
+	ar rcs $(TEST_LIB) $(OBJECT_FILES)
 
 
 
 clean:
 	rm -f $(OBJECT_FILES)
-	rm -f events_test.o
-	rm -f events_test.exe
+	rm -f $(TEST_LIB)
+	cd tests && $(MAKE) clean
     
