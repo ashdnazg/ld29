@@ -1,40 +1,17 @@
-CC = gcc
-CFLAGS = -pedantic -std=c99 -Wall -g
-TEST_LIB = libaesis.a
-C_FILES = event.c \
-          int_list.c \
-          mem_wrap.c \
-          macros.c \
-          system.c \
-          
-          
-HEADER_FILES = event.h \
-               int_list.h \
-               mem_wrap.h \
-               macros.h \
-               builtin_events.h \
-               system.h \
+.PHONY: test core
 
-OBJECT_FILES = $(C_FILES:.c=.o)
-    
-all:
+core:
+	cd core && $(MAKE) all
+
+all: core
 	@echo nothing here at the moment
 
-.PHONY: all test
 
-$(OBJECT_FILES): $(HEADER_FILES)
-
-
-test: $(OBJECT_FILES) $(TEST_LIB)
-	cd tests && $(MAKE)
-
-$(TEST_LIB): $(OBJECT_FILES)
-	ar rcs $(TEST_LIB) $(OBJECT_FILES)
+test: core
+	cd tests && $(MAKE) all
 
 
 
 clean:
-	rm -f $(OBJECT_FILES)
-	rm -f $(TEST_LIB)
 	cd tests && $(MAKE) clean
-    
+	cd core && $(MAKE) clean

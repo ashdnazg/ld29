@@ -64,7 +64,6 @@ void events_map_loop(events_map_t *events_map) {
     event_t * current_event;
     list_init(&(events_queue.events), event_t, events_link);
     events_queue.running = TRUE;
-    push_event(&events_queue, EVENT_LOG, MAYBIFY(strdup("Message")));
     
     while (events_queue.running && !list_is_empty(&(events_queue.events))) {
         current_event = (event_t *) list_head(&(events_queue.events));

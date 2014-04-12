@@ -1,8 +1,8 @@
-#include "system.h"
-#include "macros.h"
-#include "event.h"
-#include "builtin_events.h"
-#include "mem_wrap.h"
+#include "core/system.h"
+#include "core/macros.h"
+#include "core/event.h"
+#include "core/builtin_events.h"
+#include "core/mem_wrap.h"
 //#include "systems/logger/logger.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,10 +38,10 @@ int main(int argc, char* argv[]) {
     events_map_import(&map, &sys, event1);
     events_map_import(&map, &sys, event2);
     events_map_import(&map, &sys, event3);
-    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
-    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
-    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
-    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
+    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_LOG, MAYBIFY_FUNC(NULL));
+    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_LOG, MAYBIFY_FUNC(NULL));
+    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_LOG, MAYBIFY_FUNC(NULL));
+    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_LOG, MAYBIFY_FUNC(NULL));
     events_map_process_pending(&map);
     printf("processed\n");
     
