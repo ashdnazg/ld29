@@ -10,31 +10,32 @@ void events_map_init(events_map_t *events_map) {
     events_map->initialized = FALSE;
     events_map->count = EVENTS_COUNT;
     events_map->hooks_map = NULL;
-    list_init(&(events_map->pending_imports), pending_import_t, pending_imports_link);
-    list_init(&(events_map->pending_exports), pending_export_t, pending_exports_link);
+    events_map->sender_params_free = NULL;
+    list_init(&(events_map->pending_event_imports), pending_event_import_t, pending_event_imports_link);
+    list_init(&(events_map->pending_event_exports), pending_event_export_t, pending_event_exports_link);
     list_init(&(events_map->pending_hooks), pending_hook_t, pending_hooks_link);
 }
 
 
 
-void events_map_export(events_map_t *events_map, const char *name, MAYBE_FUNC(free_callback_t) sender_params_free) {
-    pending_export_t *pending_export = mem_alloc(sizeof(*pending_export));
-    link_init(&(pending_export->pending_exports_link));
-    pending_export->name = name;
-    pending_export->sender_params_free = sender_params_free;
-    list_insert_tail(&(events_map->pending_exports), pending_export);
-    events_map->count += 1;
+void _events_map_export(events_map_t *events_map, const char *name, MAYBE_FUNC(free_callback_t) sender_params_free) {
+    pending_event_export_t *pending_event_export = mem_alloc(sizeof(*pending_event_export));
+    link_init(&(pending_event_export->pending_event_exports_link));
+    pending_event_export->name = name;
+    pending_event_export->sender_params_free = sender_params_free;
+    list_insert_tail(&(events_map->pending_event_exports), pending_event_export);
+    ++(events_map->count);
 }
 
 
 void _events_map_import(events_map_t *events_map, system_t *system, const char *name, uint32_t local_index) {
-    pending_import_t *pending_import = mem_alloc(sizeof(*pending_import));
-    link_init(&(pending_import->pending_imports_link));
-    pending_import->name = name;
-    pending_import->system = system;
-    pending_import->local_index = local_index;
+    pending_event_import_t *pending_event_import = mem_alloc(sizeof(*pending_event_import));
+    link_init(&(pending_event_import->pending_event_imports_link));
+    pending_event_import->name = name;
+    pending_event_import->system = system;
+    pending_event_import->local_index = local_index;
     
-    list_insert_tail(&(events_map->pending_imports), pending_import);
+    list_insert_tail(&(events_map->pending_event_imports), pending_event_import);
 }
 
 event_t * event_new(uint32_t type, MAYBE(void *) sender_params) {
@@ -107,22 +108,22 @@ void events_map_register_hook(events_map_t *events_map, system_t *system, event_
     list_insert_tail(&(events_map->pending_hooks), pending_hook);
 }
 
-bool compare_pending_exports(pending_export_t *pending_export_a, pending_export_t *pending_export_b) {
-    return strncmp(pending_export_a->name, pending_export_b->name, EVENT_NAME_MAX_LENGTH) < 0;
+bool compare_pending_event_exports(pending_event_export_t *pending_event_export_a, pending_event_export_t *pending_event_export_b) {
+    return strncmp(pending_event_export_a->name, pending_event_export_b->name, EVENT_NAME_MAX_LENGTH) < 0;
 }
 
-bool compare_pending_imports(pending_import_t *pending_import_a, pending_import_t *pending_import_b) {
-    return strncmp(pending_import_a->name, pending_import_b->name, EVENT_NAME_MAX_LENGTH) < 0;
+bool compare_pending_event_imports(pending_event_import_t *pending_event_import_a, pending_event_import_t *pending_event_import_b) {
+    return strncmp(pending_event_import_a->name, pending_event_import_b->name, EVENT_NAME_MAX_LENGTH) < 0;
 }
 
-void pending_import_free(pending_import_t *pending_import) {
-    link_remove_from_list(&(pending_import->pending_imports_link));
-    mem_free(pending_import);
+void pending_event_import_free(pending_event_import_t *pending_event_import) {
+    link_remove_from_list(&(pending_event_import->pending_event_imports_link));
+    mem_free(pending_event_import);
 }
 
-void pending_export_free(pending_export_t *pending_export) {
-    link_remove_from_list(&(pending_export->pending_exports_link));
-    mem_free(pending_export);
+void pending_event_export_free(pending_event_export_t *pending_event_export) {
+    link_remove_from_list(&(pending_event_export->pending_event_exports_link));
+    mem_free(pending_event_export);
 }
 
 void pending_hook_free(pending_hook_t *pending_hook) {
@@ -155,28 +156,28 @@ void events_map_process_pending(events_map_t *events_map) {
         ++list_ptr;
     }
     
-    list_sort(&(events_map->pending_imports), (cmp_cb_t) compare_pending_imports);
-    list_sort(&(events_map->pending_exports), (cmp_cb_t) compare_pending_exports);
+    list_sort(&(events_map->pending_event_imports), (cmp_cb_t) compare_pending_event_imports);
+    list_sort(&(events_map->pending_event_exports), (cmp_cb_t) compare_pending_event_exports);
     i = EVENTS_COUNT;
-    list_for_each(&(events_map->pending_exports), pending_export_t *, pending_export) {
-        if (next_pending_export != NULL && compare_pending_exports(next_pending_export, pending_export)) {
-            //printf("Two events with the name: %s\n", pending_export->name);
+    list_for_each(&(events_map->pending_event_exports), pending_event_export_t *, pending_event_export) {
+        if (next_pending_event_export != NULL && compare_pending_event_exports(next_pending_event_export, pending_event_export)) {
+            printf("Two events with the name: %s\n", pending_event_export->name);
             //ERROR: two events with the same name
         }
-        list_for_each(&(events_map->pending_imports), pending_import_t *, pending_import) {
-            cmp = strncmp(pending_import->name, pending_export->name, EVENT_NAME_MAX_LENGTH);
+        list_for_each(&(events_map->pending_event_imports), pending_event_import_t *, pending_event_import) {
+            cmp = strncmp(pending_event_import->name, pending_event_export->name, EVENT_NAME_MAX_LENGTH);
             if (cmp == 0) {
-                pending_import->system->local_events_map[pending_import->local_index] = i;
-                //printf("Imported: %s mapped: %d -> %d\n", pending_import->name, pending_import->local_index, i);
-                pending_import_free(pending_import);
+                pending_event_import->system->local_events_map[pending_event_import->local_index] = i;
+                //printf("Imported: %s mapped: %d -> %d\n", pending_event_import->name, pending_event_import->local_index, i);
+                pending_event_import_free(pending_event_import);
             } else if (cmp < 0) {
-                printf("Imported event not found: %s\n", pending_import->name);
+                printf("Imported event not found: %s\n", pending_event_import->name);
                 //ERROR: couldn't import an event
             }
             
         }
-        events_map->sender_params_free[i] = pending_export->sender_params_free;
-        pending_export_free(pending_export);
+        events_map->sender_params_free[i] = pending_event_export->sender_params_free;
+        pending_event_export_free(pending_event_export);
         ++i;
     }
     list_for_each(&(events_map->pending_hooks), pending_hook_t *, pending_hook) {
@@ -202,11 +203,11 @@ void events_map_clean(events_map_t *events_map) {
         mem_free(events_map->hooks_map);
     }
     mem_free(events_map->sender_params_free);
-    list_for_each(&(events_map->pending_imports), pending_import_t *, pending_import) {
-        pending_import_free(pending_import);
+    list_for_each(&(events_map->pending_event_imports), pending_event_import_t *, pending_event_import) {
+        pending_event_import_free(pending_event_import);
     }
-    list_for_each(&(events_map->pending_exports), pending_export_t *, pending_export) {
-        pending_export_free(pending_export);
+    list_for_each(&(events_map->pending_event_exports), pending_event_export_t *, pending_event_export) {
+        pending_event_export_free(pending_event_export);
     }
     list_for_each(&(events_map->pending_hooks), pending_hook_t *, pending_hook) {
         pending_hook_free(pending_hook);

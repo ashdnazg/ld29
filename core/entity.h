@@ -15,7 +15,7 @@ typedef struct entities_list_s entities_list_t;
 struct entities_list_s {
     uint32_t count;
     list_t entities;
-    component_type_t * component_types;
+    components_map_t components_map;
 };
 
 struct entity_s {
@@ -24,6 +24,10 @@ struct entity_s {
     link_t entities_link;
     list_t components;
 };
+
+
+void entities_list_init(entities_list_t *entities_list);
+void entities_list_clean(entities_list_t *entities_list);
 
 component_t * entity_add_component(entities_list_t *entities_list, entity_t *entity, uint32_t component_type_id);
 

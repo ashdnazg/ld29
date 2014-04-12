@@ -20,10 +20,12 @@ struct system_s {
     int id;
     const char *name;
     uint32_t *local_events_map;
+    uint32_t *local_components_map;
 };
 
 
-void system_init_local_map(system_t *system, size_t size);
+void system_init_local_events_map(system_t *system, size_t size);
+void system_init_local_components_map(system_t *system, size_t size);
 void system_init(system_t *system, const char *name);
 void system_clean(system_t *system);
 

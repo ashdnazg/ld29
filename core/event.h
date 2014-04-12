@@ -21,9 +21,8 @@ typedef struct events_queue_s events_queue_t;
 
 #define CUSTOM_EVENT(var) __CUSTOM_EVENT_ ## var
 #define LOCAL_EVENT(system, name) ((system)->local_events_map[CUSTOM_EVENT(name)])
-#define IMPORTED_EVENTS enum __IMPORTED_EVENTS {
-#define END_IMPORTED_EVENTS ,__IMPORTED_EVENTS_COUNT};
-
+#define LOCAL_EVENTS enum __LOCAL_EVENTS {
+#define END_LOCAL_EVENTS ,__LOCAL_EVENTS_COUNT};
 
 #define EVENT_NAME_MAX_LENGTH 100
 typedef void (*event_hook_t)(events_queue_t *events_queue, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params);
@@ -44,8 +43,8 @@ struct events_map_s {
     size_t count;
     list_t *hooks_map;
     MAYBE_FUNC(free_callback_t) *sender_params_free;
-    list_t pending_imports;
-    list_t pending_exports;
+    list_t pending_event_imports;
+    list_t pending_event_exports;
     list_t pending_hooks;
 };
 
@@ -57,18 +56,18 @@ typedef struct registered_hook_s {
     MAYBE_FUNC(free_callback_t) system_params_free;
 } registered_hook_t;
 
-typedef struct pending_import_s {
-    link_t pending_imports_link;
+typedef struct pending_event_import_s {
+    link_t pending_event_imports_link;
     system_t *system;
     const char *name;
     uint32_t local_index;
-} pending_import_t;
+} pending_event_import_t;
 
-typedef struct pending_export_s {
-    link_t pending_exports_link;
+typedef struct pending_event_export_s {
+    link_t pending_event_exports_link;
     const char *name;
     MAYBE_FUNC(free_callback_t) sender_params_free;
-} pending_export_t;
+} pending_event_export_t;
 
 typedef struct pending_hook_s {
     link_t pending_hooks_link;
@@ -78,11 +77,18 @@ typedef struct pending_hook_s {
 
 void events_map_init(events_map_t *events_map);
 
-void events_map_export(events_map_t *events_map, const char *name, MAYBE_FUNC(free_callback_t) sender_params_free);
+#define events_map_export(map, system, name, sender_params_free) \
+    do { \
+        system_init_local_events_map(system, __LOCAL_EVENTS_COUNT); \
+        _events_map_export(map, #name, sender_params_free);\
+        _events_map_import(map, system, #name, CUSTOM_EVENT(name));\
+    } while (0);
+
+void _events_map_export(events_map_t *events_map, const char *name, MAYBE_FUNC(free_callback_t) sender_params_free);
 
 #define events_map_import(map, system, name) \
     do { \
-        system_init_local_map(system, __IMPORTED_EVENTS_COUNT); \
+        system_init_local_events_map(system, __LOCAL_EVENTS_COUNT); \
         _events_map_import(map, system, #name, CUSTOM_EVENT(name));\
     } while (0);
 

@@ -24,3 +24,8 @@ void mem_wrap_init() {
 void mem_wrap_print_mallocs() {
     printf("\nUnfreed mallocs: %d", g_mem_mem_allocs_count);
 }
+
+char * mem_strdup(const char *s) {
+    ++g_mem_mem_allocs_count;
+    return strdup(s);
+}

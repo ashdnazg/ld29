@@ -8,11 +8,12 @@
 #include <stdio.h>
 
 
-IMPORTED_EVENTS
+LOCAL_EVENTS
     CUSTOM_EVENT(event1),
     CUSTOM_EVENT(event2),
-    CUSTOM_EVENT(event3)
-END_IMPORTED_EVENTS
+    CUSTOM_EVENT(event3),
+    CUSTOM_EVENT(exevent)
+END_LOCAL_EVENTS
 
 void print_something(events_queue_t *events_queue, system_t *system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     if (UNMAYBE(sender_params) != NULL) {
@@ -31,10 +32,10 @@ int main(int argc, char* argv[]) {
     events_map_init(&map);
     system_init(&sys, "system");
     //init_logger(&map, &logger);
-    events_map_export(&map, "exevent", MAYBIFY_FUNC(NULL));
-    events_map_export(&map, "event1", MAYBIFY_FUNC(NULL));
-    events_map_export(&map, "event2", MAYBIFY_FUNC(NULL));
-    events_map_export(&map, "event3", MAYBIFY_FUNC(NULL));
+    events_map_export(&map, &sys, exevent, MAYBIFY_FUNC(NULL));
+    events_map_export(&map, &sys, event1, MAYBIFY_FUNC(NULL));
+    events_map_export(&map, &sys, event2, MAYBIFY_FUNC(NULL));
+    events_map_export(&map, &sys, event3, MAYBIFY_FUNC(NULL));
     events_map_import(&map, &sys, event1);
     events_map_import(&map, &sys, event2);
     events_map_import(&map, &sys, event3);
