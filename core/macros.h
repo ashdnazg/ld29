@@ -24,6 +24,8 @@ typedef int bool;
 #define _UNIQUE(var, line) CONCAT3(_, var, line)
 #define UNIQUE(var) _UNIQUE(var, __LINE__)
 
+typedef void (*free_callback_t)(void *);
+
 #ifndef NO_MAYBE
 
 typedef struct {

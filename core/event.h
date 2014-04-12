@@ -27,7 +27,6 @@ typedef struct events_queue_s events_queue_t;
 
 #define EVENT_NAME_MAX_LENGTH 100
 typedef void (*event_hook_t)(events_queue_t *events_queue, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params);
-typedef void (*free_callback_t)(void *);
 
 struct event_s {
     link_t events_link;

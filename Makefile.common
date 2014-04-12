@@ -5,17 +5,19 @@ CORE_C_FILES = event.c \
           int_list.c \
           mem_wrap.c \
           macros.c \
-          system.c 
+          system.c \
+          entity.c \
+          component.c
           
 CORE_HEADERS = event.h \
                int_list.h \
                mem_wrap.h \
                macros.h \
                builtin_events.h \
-               system.h 
+               system.h \
+               entity.h \
+               component.h
 
-CORE_O_FILES = $(CORE_C_FILES:.c=.o)
-
-CORE_LIB = core.a
+CORE_O_FILES = $(addprefix $(CORE_PATH), $(CORE_C_FILES:%.c=%.o))
 
 .PHONY: all clean
