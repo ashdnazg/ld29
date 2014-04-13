@@ -11,6 +11,7 @@ typedef struct entity_s entity_t;
 typedef struct entities_list_s entities_list_t;
 #include "int_list.h"
 #include "component.h"
+#include <stdint.h>
 
 struct entities_list_s {
     uint32_t count;
@@ -29,10 +30,7 @@ struct entity_s {
 void entities_list_init(entities_list_t *entities_list);
 void entities_list_clean(entities_list_t *entities_list);
 
-component_t * entity_add_component(entities_list_t *entities_list, entity_t *entity, uint32_t component_type_id);
-
-entity_t * entity_new (entities_list_t *entities_list, char *name);
-
+entity_t * entity_new(char *name, uint32_t id);
 void entity_free(entity_t *entity);
 
 #ifdef __cplusplus

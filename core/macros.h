@@ -32,7 +32,7 @@ typedef struct {
     void *ptr;
 } __maybe;
 
-typedef void (*__func_ptr)();
+typedef void (*__func_ptr)(void);
 
 typedef struct {
     __func_ptr ptr;

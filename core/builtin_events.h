@@ -9,8 +9,10 @@ extern "C" {
 enum builtin_events_e {
     EVENT_NEW_STEP,
     EVENT_NEW_FRAME,
+    EVENT_START,
     EVENT_EXIT,
     EVENT_PAUSE,
+    EVENT_UNPAUSE,
     EVENT_LOG,
     
     EVENTS_COUNT,

@@ -7,7 +7,8 @@ CORE_C_FILES = event.c \
           macros.c \
           system.c \
           entity.c \
-          component.c
+          component.c \
+          game.c
           
 CORE_HEADERS = event.h \
                int_list.h \
@@ -16,7 +17,8 @@ CORE_HEADERS = event.h \
                builtin_events.h \
                system.h \
                entity.h \
-               component.h
+               component.h \
+               game.h
 
 CORE_O_FILES = $(addprefix $(CORE_PATH), $(CORE_C_FILES:%.c=%.o))
 

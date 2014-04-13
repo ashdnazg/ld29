@@ -3,10 +3,10 @@
 #include "core/event.h"
 #include "core/builtin_events.h"
 #include "core/mem_wrap.h"
+#include "core/game.h"
 //#include "systems/logger/logger.h"
 #include <stdlib.h>
 #include <stdio.h>
-
 
 LOCAL_EVENTS
     CUSTOM_EVENT(event1),
@@ -26,34 +26,27 @@ void print_something(events_queue_t *events_queue, system_t *system, MAYBE(void 
 
 int main(int argc, char* argv[]) {
     mem_wrap_init();
-    system_t sys;
+    game_t game;
+    system_t *sys = system_new();
     //system_t logger;
-    events_map_t map;
-    events_map_init(&map);
-    system_init(&sys, "system");
+    game_init(&game);
+    sys->name = "system1";
     //init_logger(&map, &logger);
-    events_map_export(&map, &sys, exevent, MAYBIFY_FUNC(NULL));
-    events_map_export(&map, &sys, event1, MAYBIFY_FUNC(NULL));
-    events_map_export(&map, &sys, event2, MAYBIFY_FUNC(NULL));
-    events_map_export(&map, &sys, event3, MAYBIFY_FUNC(NULL));
-    events_map_import(&map, &sys, event1);
-    events_map_import(&map, &sys, event2);
-    events_map_import(&map, &sys, event3);
-    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_LOG, MAYBIFY_FUNC(NULL));
-    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_LOG, MAYBIFY_FUNC(NULL));
-    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_LOG, MAYBIFY_FUNC(NULL));
-    events_map_register_hook(&map, &sys, print_something, MAYBIFY(NULL), EVENT_LOG, MAYBIFY_FUNC(NULL));
-    events_map_process_pending(&map);
+    game_export_event(&game, sys, exevent, MAYBIFY_FUNC(NULL));
+    game_export_event(&game, sys, event1, MAYBIFY_FUNC(NULL));
+    game_export_event(&game, sys, event2, MAYBIFY_FUNC(NULL));
+    game_export_event(&game, sys, event3, MAYBIFY_FUNC(NULL));
+    game_register_hook(&game, sys, print_something, MAYBIFY(NULL), EVENT_START, MAYBIFY_FUNC(NULL));
+    game_register_hook(&game, sys, print_something, MAYBIFY(NULL), EVENT_START, MAYBIFY_FUNC(NULL));
+    game_register_hook(&game, sys, print_something, MAYBIFY(NULL), EVENT_START, MAYBIFY_FUNC(NULL));
+    game_register_hook(&game, sys, print_something, MAYBIFY(NULL), EVENT_START, MAYBIFY_FUNC(NULL));
+    game_start(&game);
     printf("processed\n");
     
-    
-    events_map_loop(&map);
-    printf("ended loop\n");
-    
-    events_map_clean(&map);
+    game_clean(&game);
     printf("events_cleaned\n");
     
-    system_clean(&sys);
+    system_free(sys);
     //system_clean(&logger);
     printf("system_cleaned\n");
 

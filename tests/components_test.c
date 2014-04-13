@@ -2,6 +2,7 @@
 #include "core/macros.h"
 #include "core/component.h"
 #include "core/entity.h"
+#include "core/game.h"
 #include "core/mem_wrap.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -43,28 +44,26 @@ void CLEAN_DATA(component2) (void *data) {
 
 int main(int argc, char* argv[]) {
     mem_wrap_init();
-    system_t sys;
+    system_t *sys = system_new();
     entity_t *ent;
-    components_map_t *map;
+    game_t game;
     //system_t logger;
-    entities_list_t e_list;
-    entities_list_init(&e_list);
-    map = &(e_list.components_map);
-    system_init(&sys, "system");
+    game_init(&game);
+    sys->name = "system1";
     //init_logger(&map, &logger);
-    components_map_export(map, &sys, component1);
-    components_map_export(map, &sys, component2);
-    components_map_process_pending(map);
+    game_export_component(&game, sys, component1);
+    game_export_component(&game, sys, component2);
+    game_start(&game);
     printf("processed\n");
-    ent = entity_new(&e_list, mem_strdup("test entity"));
-    entity_add_component(&e_list, ent, LOCAL_COMPONENT(&sys,component1));
-    entity_add_component(&e_list, ent, LOCAL_COMPONENT(&sys,component2));
+    ent = entity_create(&game, mem_strdup("test entity"));
+    entity_add_component(&game, ent, LOCAL_COMPONENT(sys,component1));
+    entity_add_component(&game, ent, LOCAL_COMPONENT(sys,component2));
     
     
-    entities_list_clean(&e_list);
+    game_clean(&game);
     printf("entities list cleaned\n");
     
-    system_clean(&sys);
+    system_free(sys);
     //system_clean(&logger);
     printf("system_cleaned\n");
 
