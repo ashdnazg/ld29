@@ -11,13 +11,13 @@ typedef struct entity_s entity_t;
 typedef struct entities_list_s entities_list_t;
 #include "int_list.h"
 #include "component.h"
-#include <stdint.h>
-
 struct entities_list_s {
     uint32_t count;
     list_t entities;
     components_map_t components_map;
 };
+#include <stdint.h>
+
 
 struct entity_s {
     char *name;

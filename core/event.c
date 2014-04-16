@@ -56,30 +56,6 @@ void event_free(events_map_t *events_map, event_t * event) {
 }
 
 
-void push_event(events_queue_t *events_queue, uint32_t type, MAYBE(void *) sender_params) {
-    list_insert_tail(&(events_queue->events), event_new(type, sender_params));
-}
-
-void events_map_loop(events_map_t *events_map) {
-    events_queue_t events_queue;
-    event_t * current_event;
-    list_init(&(events_queue.events), event_t, events_link);
-    events_queue.running = TRUE;
-    push_event(&(events_queue), EVENT_START, MAYBIFY(NULL));
-    while (events_queue.running && !list_is_empty(&(events_queue.events))) {
-        current_event = (event_t *) list_head(&(events_queue.events));
-        list_for_each(&(events_map->hooks_map[(uint32_t) (current_event->type)]), registered_hook_t *, registered_hook) {
-            registered_hook->hook(&events_queue, registered_hook->system, registered_hook->system_params, current_event->sender_params);
-        }
-        event_free(events_map, current_event);
-    }
-    list_for_each(&(events_queue.events), event_t *, event) {
-        event_free(events_map, event);
-    }
-}
-
-
-
 registered_hook_t * registered_hook_new(event_hook_t hook, system_t *system, MAYBE(void *) system_params, MAYBE_FUNC(free_callback_t) system_params_free) {
     registered_hook_t *registered_hook = mem_alloc(sizeof(*registered_hook));
     link_init(&(registered_hook->hooks_link));
@@ -181,7 +157,7 @@ void events_map_process_pending(events_map_t *events_map) {
         ++i;
     }
     list_for_each(&(events_map->pending_hooks), pending_hook_t *, pending_hook) {
-        list_insert_tail(&(events_map->hooks_map[pending_hook->event_id]), pending_hook->registered_hook);
+        list_insert_tail(&(events_map->hooks_map[GET_EVENT_ID(pending_hook->registered_hook->system, pending_hook->event_id)]), pending_hook->registered_hook);
         //printf("Registered hook for event: %d\n", map_index);
         pending_hook_free(pending_hook);
     }

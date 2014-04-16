@@ -9,14 +9,22 @@ extern "C" {
 #include "int_list.h"
 
 typedef struct game_s game_t;
-
 #include "component.h"
 #include "entity.h"
 #include "system.h"
 
+typedef void (*event_hook_t)(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params);
+
+
+#include "event.h"
+
+
+
 struct game_s {
+    bool paused;
     entities_list_t entities_list;
     events_map_t events_map;
+    list_t events_queue;
     components_map_t components_map;
     list_t systems;
 };
@@ -34,6 +42,9 @@ component_t * entity_add_component(game_t *game, entity_t *entity, uint32_t comp
 entity_t * entity_create(game_t *game, char *name);
 
 void game_register_hook(game_t *game, system_t *system, event_hook_t hook, MAYBE(void *) system_params, uint32_t event_id, MAYBE_FUNC(free_callback_t) system_params_free);
+
+void game_push_event(game_t *game, system_t *system, uint32_t type, MAYBE(void *) sender_params);
+
 
 #define game_export_event(game, system, name, sender_params_free) \
     do { \

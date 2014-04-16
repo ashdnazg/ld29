@@ -15,9 +15,7 @@ extern "C" {
 
 typedef struct system_s system_t;
 
-#include "event.h"
-
-typedef void (*system_init_func_t)(events_map_t *event_map, system_t *system);
+//#include "event.h"
 
 struct system_s {
     const char *name;

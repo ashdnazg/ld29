@@ -12,30 +12,16 @@ typedef struct event_s event_t;
 typedef struct events_map_s events_map_t;
 typedef struct events_queue_s events_queue_t;
 
-
 #include <stdlib.h>
 #include <stdint.h>
 #include "builtin_events.h"
 #include "system.h"
 #include "int_list.h"
 
-#define CUSTOM_EVENT(var) __CUSTOM_EVENT_ ## var
-#define LOCAL_EVENT(system, name) ((system)->local_events_map[CUSTOM_EVENT(name)])
-#define LOCAL_EVENTS enum __LOCAL_EVENTS {
-#define END_LOCAL_EVENTS ,__LOCAL_EVENTS_COUNT};
-
-#define EVENT_NAME_MAX_LENGTH 100
-typedef void (*event_hook_t)(events_queue_t *events_queue, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params);
-
 struct event_s {
     link_t events_link;
     uint32_t type;
     MAYBE(void *) sender_params;
-};
-
-struct events_queue_s {
-    bool running;
-    list_t events;
 };
 
 struct events_map_s {
@@ -47,6 +33,22 @@ struct events_map_s {
     list_t pending_event_exports;
     list_t pending_hooks;
 };
+
+
+
+#include "game.h"
+
+#define CUSTOM_EVENT(var) __CUSTOM_EVENT_ ## var
+#define IS_CUSTOM(event_id) (event_id & 0x80000000)
+#define GET_CUSTOM_EVENT_ID(system, custom_id) ((system)->local_events_map[(custom_id) & 0x7FFFFFFF])
+#define GET_EVENT_ID(system, event_id) (IS_CUSTOM(event_id) ? GET_CUSTOM_EVENT_ID(system, event_id) : event_id)
+#define LOCAL_EVENT(name) (CUSTOM_EVENT(name) | 0x80000000)
+#define LOCAL_EVENTS enum __LOCAL_EVENTS {
+#define END_LOCAL_EVENTS ,__LOCAL_EVENTS_COUNT};
+
+#define EVENT_NAME_MAX_LENGTH 100
+
+
 
 typedef struct registered_hook_s {
     link_t hooks_link;
@@ -75,6 +77,11 @@ typedef struct pending_hook_s {
     uint32_t event_id;
 } pending_hook_t;
 
+
+event_t * event_new(uint32_t type, MAYBE(void *) sender_params);
+
+void event_free(events_map_t *events_map, event_t * event);
+
 void events_map_init(events_map_t *events_map);
 
 #define events_map_export(map, system, name, sender_params_free) \
@@ -98,11 +105,7 @@ void events_map_register_hook(events_map_t *events_map, system_t *system, event_
 
 void events_map_process_pending(events_map_t *events_map);
 
-void events_map_loop(events_map_t *events_map);
-
 void events_map_clean(events_map_t *events_map);
-
-void push_event(events_queue_t *events_queue, uint32_t type, MAYBE(void *) sender_params);
 
 #ifdef __cplusplus
 }
