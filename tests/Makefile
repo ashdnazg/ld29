@@ -11,7 +11,6 @@ components_test: components_test.o
 	$(CC) $(CFLAGS) $(LDFLAGS) components_test.o $(CORE_O_FILES) -o components_test.exe
 
 sdl_test: sdl_test.o
-	cd ../systems/sdl && $(MAKE) all
 	$(CC) $(CFLAGS) $(LDFLAGS) sdl_test.o $(CORE_O_FILES) ../systems/sdl/sdl.o -lmingw32 -lSDL2main -lSDL2 -o sdl_test.exe
 
     

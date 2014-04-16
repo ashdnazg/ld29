@@ -1,13 +1,14 @@
-.PHONY: test core
+.PHONY: tests core systems
 
 core:
 	cd core && $(MAKE) all
 
+systems: core
+	cd systems && $(MAKE) all
+
 all: core
-	@echo nothing here at the moment
 
-
-test: core
+tests: core systems
 	cd tests && $(MAKE) all
 
 

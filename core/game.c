@@ -31,7 +31,10 @@ void game_load_systems(game_t *game) {
     
 }
 
-void push_event(game_t *game, system_t *system, uint32_t type, MAYBE(void *) sender_params) {
+
+
+
+void game_push_event(game_t *game, system_t *system, uint32_t type, MAYBE(void *) sender_params) {
     list_insert_tail(&(game->events_queue), event_new(GET_EVENT_ID(system, type), sender_params));
 }
 
@@ -42,7 +45,7 @@ void game_start(game_t *game) {
     event_t * current_event;
     //events_queue.running = TRUE;
     game->paused = FALSE;
-    push_event(game, NULL, EVENT_START, MAYBIFY(NULL));
+    game_push_event(game, NULL, EVENT_START, MAYBIFY(NULL));
     while (!(game->paused) && !list_is_empty(&(game->events_queue))) {
         current_event = (event_t *) list_head(&(game->events_queue));
         list_for_each(&(game->events_map.hooks_map[current_event->type]), registered_hook_t *, registered_hook) {

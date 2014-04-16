@@ -15,7 +15,7 @@ LOCAL_EVENTS
     CUSTOM_EVENT(exevent)
 END_LOCAL_EVENTS
 
-void print_something(events_queue_t *events_queue, system_t *system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+void print_something(game_t *game, system_t *system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     if (UNMAYBE(sender_params) != NULL) {
         char *str = (char *) UNMAYBE(sender_params);
         printf("%s\n", str);

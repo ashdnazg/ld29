@@ -20,7 +20,7 @@ void sys_SDL_check_input(game_t *game, system_t * system, MAYBE(void *) system_p
     sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
     while (SDL_PollEvent(&e)) {
         if (e.type == SDL_QUIT) {
-            push_event(game, system, EVENT_EXIT, MAYBIFY(NULL));
+            game_push_event(game, system, EVENT_EXIT, MAYBIFY(NULL));
             return;
         }
     }
@@ -40,9 +40,11 @@ void sys_SDL_check_input(game_t *game, system_t * system, MAYBE(void *) system_p
             }
         } else {
             sys_SDL_data->frames_skipped = 0;
-            push_event(game, system, EVENT_NEW_STEP, MAYBIFY(NULL));
+            if (!(game->paused)) {
+                game_push_event(game, system, EVENT_NEW_STEP, MAYBIFY(NULL));
+            }
             if (draw) {
-                push_event(game, system, EVENT_NEW_FRAME, MAYBIFY(NULL));
+                game_push_event(game, system, EVENT_NEW_FRAME, MAYBIFY(NULL));
             }
         }
         ++(sys_SDL_data->frames_this_second);
@@ -54,7 +56,7 @@ void sys_SDL_check_input(game_t *game, system_t * system, MAYBE(void *) system_p
     } else {
         SDL_Delay(1);
     }
-    push_event(game, system, LOCAL_EVENT(sdl_check_input), MAYBIFY(NULL));
+    game_push_event(game, system, LOCAL_EVENT(sdl_check_input), MAYBIFY(NULL));
 }
 
 void sys_SDL_clean(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
