@@ -8,10 +8,24 @@
 #include "core/game.h"
 #include <stdint.h>
 #include <stdio.h>
+#include "sdl_video.h"
+
 
 LOCAL_EVENTS
     CUSTOM_EVENT(sdl_check_input)
 END_LOCAL_EVENTS
+
+void key_pressed(game_t *game, system_t *system, SDL_Keycode keycode) {
+    switch (keycode) {
+        case SDLK_p:
+            game_push_event(game, system, EVENT_TOGGLE_PAUSE, MAYBIFY(NULL));
+            break;
+    }
+}
+
+void key_released(game_t *game, system_t *system, SDL_Keycode keycode) {
+
+}
 
 void sys_SDL_check_input(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     SDL_Event e;
@@ -19,9 +33,22 @@ void sys_SDL_check_input(game_t *game, system_t * system, MAYBE(void *) system_p
     int32_t time_to_next;
     sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
     while (SDL_PollEvent(&e)) {
-        if (e.type == SDL_QUIT) {
-            game_push_event(game, system, EVENT_EXIT, MAYBIFY(NULL));
-            return;
+        switch (e.type) {
+            case SDL_QUIT:
+                game_push_event(game, system, EVENT_EXIT, MAYBIFY(NULL));
+                return;
+            case SDL_KEYDOWN:
+                if (!(sys_SDL_data->key_states[e.key.keysym.scancode])) {
+                    sys_SDL_data->key_states[e.key.keysym.scancode] = TRUE;
+                    key_pressed(game, system, e.key.keysym.sym);
+                }
+                break;
+            case SDL_KEYUP:
+                if (sys_SDL_data->key_states[e.key.keysym.scancode]) {
+                    sys_SDL_data->key_states[e.key.keysym.scancode] = FALSE;
+                    key_released(game, system, e.key.keysym.sym);
+                }
+                break;
         }
     }
     time_to_next = (int32_t) (sys_SDL_data->next_frame_time - SDL_GetTicks());
@@ -80,6 +107,7 @@ bool start(game_t *game, system_t *system) {
     sys_SDL_data->frames_skipped = 0;
     sys_SDL_data->frames_this_second = 0;
     sys_SDL_data->last_time = SDL_GetTicks();
+    memset(sys_SDL_data->key_states, FALSE, sizeof(sys_SDL_data->key_states));
     
     if (SDL_Init(SDL_INIT_EVERYTHING | SDL_INIT_NOPARACHUTE) == -1){
         return FALSE;

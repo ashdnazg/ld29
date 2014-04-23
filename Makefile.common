@@ -9,7 +9,9 @@ CORE_C_FILES = event.c \
           entity.c \
           component.c \
           game.c \
-          asset_cache.c
+          asset_cache.c \
+          settings.c \
+          minIni.c
           
 CORE_HEADERS = event.h \
                int_list.h \
@@ -20,7 +22,10 @@ CORE_HEADERS = event.h \
                entity.h \
                component.h \
                game.h \
-               asset_cache.h
+               asset_cache.h \
+               settings.h \
+               minIni.h \
+               minGlue.h
 
 CORE_O_FILES = $(addprefix $(CORE_PATH), $(CORE_C_FILES:%.c=%.o))
 

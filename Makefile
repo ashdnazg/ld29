@@ -16,3 +16,4 @@ tests: core systems
 clean:
 	cd tests && $(MAKE) clean
 	cd core && $(MAKE) clean
+	cd systems && $(MAKE) clean

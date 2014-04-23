@@ -16,6 +16,7 @@ int main(int argc, char* argv[]) {
     game_init(&game);
     system_t *sys = system_new();
     start(&game, sys);
+    game_load_systems(&game);
     list_insert_tail(&(game.systems), sys);
     
     game_start(&game);
@@ -23,7 +24,6 @@ int main(int argc, char* argv[]) {
     game_clean(&game);
     
     system_free(sys);
-    //system_clean(&logger);
 
     mem_wrap_print_mallocs();
     return 0;

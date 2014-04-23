@@ -26,6 +26,7 @@ typedef struct sys_SDL_data_s {
     int frames_skipped;
     int frames_this_second;
     uint32_t last_time;
+    bool key_states[SDL_NUM_SCANCODES];
 } sys_SDL_data_t;
 
 bool start(game_t *game, system_t *system);

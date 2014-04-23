@@ -13,8 +13,11 @@ components_test: components_test.o
 sdl_test: sdl_test.o
 	$(CC) $(CFLAGS) $(LDFLAGS) sdl_test.o $(CORE_O_FILES) ../systems/sdl/sdl.o -lmingw32 -lSDL2main -lSDL2 -o sdl_test.exe
 
+settings_test: settings_test.o
+	$(CC) $(CFLAGS) $(LDFLAGS) settings_test.o $(CORE_O_FILES) -o settings_test.exe
+
     
-all: events_test components_test sdl_test
+all: events_test components_test sdl_test settings_test
 
 clean:
 	rm -f events_test.o
@@ -23,3 +26,5 @@ clean:
 	rm -f components_test.exe
 	rm -f sdl_test.o
 	rm -f sdl_test.exe
+	rm -f settings_test.o
+	rm -f settings_test.exe

@@ -10,8 +10,6 @@ extern "C" {
 
 #define MAX_STR_CMP 255
 
-typedef void (*free_cb_t)(void *);
-
 
 typedef struct asset_node_s {
     link_t nodes_link;
@@ -21,10 +19,15 @@ typedef struct asset_node_s {
 
 typedef struct asset_cache_s {
     list_t nodes;
-    free_cb_t free_cb;
+    MAYBE_FUNC(free_callback_t) free_cb;
 } asset_cache_t;
+
+void asset_cache_init(asset_cache_t *a_cache, MAYBE_FUNC(free_cb_t) free_cb);
     
-asset_cache_t * asset_cache_new(free_cb_t free_cb);
+asset_cache_t * asset_cache_new(MAYBE_FUNC(free_callback_t) free_cb);
+
+void asset_cache_clean(asset_cache_t *a_cache);
+
 void asset_cache_free(asset_cache_t *a_cache);
 
 void asset_cache_add(asset_cache_t *a_cache, void *asset, const char *name);

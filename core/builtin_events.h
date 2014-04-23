@@ -13,6 +13,7 @@ enum builtin_events_e {
     EVENT_EXIT,
     EVENT_PAUSE,
     EVENT_UNPAUSE,
+    EVENT_TOGGLE_PAUSE,
     EVENT_LOG,
     
     EVENTS_COUNT,

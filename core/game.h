@@ -45,6 +45,7 @@ void game_register_hook(game_t *game, system_t *system, event_hook_t hook, MAYBE
 
 void game_push_event(game_t *game, system_t *system, uint32_t type, MAYBE(void *) sender_params);
 
+void game_toggle_pause(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params);
 
 #define game_export_event(game, system, name, sender_params_free) \
     do { \

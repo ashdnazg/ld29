@@ -6,7 +6,7 @@
 #include "entity.h"
 #include "system.h"
 #include "event.h"
-
+#include <stdio.h>
 
 void game_init(game_t *game) {
     game->paused = TRUE;
@@ -28,7 +28,7 @@ void game_clean(game_t *game) {
 }
 
 void game_load_systems(game_t *game) {
-    
+    game_register_hook(game, NULL, game_toggle_pause, MAYBIFY(NULL), EVENT_TOGGLE_PAUSE, MAYBIFY_FUNC(NULL));
 }
 
 
@@ -46,7 +46,7 @@ void game_start(game_t *game) {
     //events_queue.running = TRUE;
     game->paused = FALSE;
     game_push_event(game, NULL, EVENT_START, MAYBIFY(NULL));
-    while (!(game->paused) && !list_is_empty(&(game->events_queue))) {
+    while (!list_is_empty(&(game->events_queue))) {
         current_event = (event_t *) list_head(&(game->events_queue));
         list_for_each(&(game->events_map.hooks_map[current_event->type]), registered_hook_t *, registered_hook) {
             registered_hook->hook(game, registered_hook->system, registered_hook->system_params, current_event->sender_params);
@@ -71,4 +71,14 @@ entity_t * entity_create(game_t *game, char *name) {
 
 void game_register_hook(game_t *game, system_t *system, event_hook_t hook, MAYBE(void *) system_params, uint32_t event_id, MAYBE_FUNC(free_callback_t) system_params_free) {
     events_map_register_hook(&(game->events_map), system, hook, system_params, event_id, system_params_free);
+}
+
+void game_toggle_pause(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    if (game->paused) {
+        game->paused = FALSE;
+        game_push_event(game, NULL, EVENT_UNPAUSE, MAYBIFY(NULL));
+    } else {
+        game->paused = TRUE;
+        game_push_event(game, NULL, EVENT_PAUSE, MAYBIFY(NULL));
+    }
 }
