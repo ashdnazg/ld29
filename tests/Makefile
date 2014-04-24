@@ -1,20 +1,20 @@
-INCLUDES = -I..
-CORE_PATH = ../core/
+ROOT_PATH = ..
+
 include ../Makefile.common
 
 .PHONY: events_test components_test sdl_test
 
 events_test: events_test.o
-	$(CC) $(CFLAGS) $(LDFLAGS) events_test.o $(CORE_O_FILES) -o events_test.exe
+	$(CC) $(CFLAGS) $(LDFLAGS) events_test.o $(CORE_O_FILES) $(EXTERNAL_O_FILES) -o events_test.exe
 
 components_test: components_test.o
-	$(CC) $(CFLAGS) $(LDFLAGS) components_test.o $(CORE_O_FILES) -o components_test.exe
+	$(CC) $(CFLAGS) $(LDFLAGS) components_test.o $(CORE_O_FILES) $(EXTERNAL_O_FILES) -o components_test.exe
 
 sdl_test: sdl_test.o
-	$(CC) $(CFLAGS) $(LDFLAGS) sdl_test.o $(CORE_O_FILES) ../systems/sdl/sdl.o -lmingw32 -lSDL2main -lSDL2 -o sdl_test.exe
+	$(CC) $(CFLAGS) $(LDFLAGS) sdl_test.o $(CORE_O_FILES) $(EXTERNAL_O_FILES) ../systems/sdl/sdl.o -lmingw32 -lSDL2main -lSDL2 -o sdl_test.exe
 
 settings_test: settings_test.o
-	$(CC) $(CFLAGS) $(LDFLAGS) settings_test.o $(CORE_O_FILES) -o settings_test.exe
+	$(CC) $(CFLAGS) $(LDFLAGS) settings_test.o $(CORE_O_FILES) $(EXTERNAL_O_FILES) -o settings_test.exe
 
     
 all: events_test components_test sdl_test settings_test

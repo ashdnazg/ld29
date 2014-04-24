@@ -1,20 +1,18 @@
-INCLUDES = -I../..
-CORE_PATH = ../../core/
+ROOT_PATH = ../..
+
 include ../../Makefile.common
 
 
 SYSTEM_NAME = sdl
 LIB_NAME = $(SYSTEM_NAME).a
 HEADERS = sdl.h sdl_video.h sdl_audio.h
-# stb_image.h
 C_FILES = sdl.c sdl_video.c sdl_audio.c
-# stb_image.c
 O_FILES = $(C_FILES:%.c=%.o)
 
-$(O_FILES): $(HEADERS)
+$(O_FILES): $(HEADERS) 
 
-$(LIB_NAME): $(O_FILES) stb_image.o
-	ar rcs $(LIB_NAME) $(O_FILES) stb_image.o
+$(LIB_NAME): $(O_FILES) 
+	ar rcs $(LIB_NAME) $(O_FILES) 
 
 all: $(LIB_NAME)
 
