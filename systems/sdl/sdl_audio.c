@@ -56,22 +56,31 @@ void sound_callback(sound_manager_t *s_manager, Uint8 *stream, int len) {
     }
 }
 
-sound_manager_t * sound_manager_new(void) {
-    sound_manager_t *s_manager = mem_alloc(sizeof(sound_manager_t));
+void sound_manager_init(sound_manager_t *s_manager) {
+    asset_cache_init(&(s_manager->samples) , MAYBIFY_FUNC(sample_free));
     list_init(&(s_manager->played_samples), sample_playback_t, played_samples_link);
     s_manager->open = FALSE;
     s_manager->spec = mem_alloc(sizeof(SDL_AudioSpec));
-    return s_manager;
 }
 
-void sound_manager_free(sound_manager_t *s_manager) {
+sound_manager_t * sound_manager_new(void) {
+    sound_manager_t *s_manager = mem_alloc(sizeof(sound_manager_t));
+    sound_manager_init(s_manager);
+    return s_manager;
+}
+void sound_manager_clean(sound_manager_t *s_manager) {
     if(s_manager->open) {
         SDL_CloseAudio();
     }
     list_for_each(&(s_manager->played_samples), sample_playback_t *, playback) {
         sample_playback_free(playback);
     }
+    asset_cache_clean(&(s_manager->samples));
     mem_free(s_manager->spec);
+}
+
+void sound_manager_free(sound_manager_t *s_manager) {
+    sound_manager_clean(s_manager);
     mem_free(s_manager);
 }
 
@@ -110,7 +119,7 @@ void sample_free(sample_t * sample) {
 }
 
 
-sample_t * load_sample(sound_manager_t *s_manager, const char *path) {
+sample_t * load_sample(sound_manager_t *s_manager, const char *name) {
     Uint8 *data;
     Uint32 len;
     SDL_AudioSpec *spec = mem_alloc(sizeof(SDL_AudioSpec));

@@ -8,6 +8,7 @@ extern "C" {
 
 #include "core/int_list.h"
 #include "core/macros.h"
+#include "core/asset_cache.h"
 #include <SDL2/SDL.h>
 
 typedef struct sample_s {
@@ -26,13 +27,15 @@ typedef struct sample_playback_s {
 } sample_playback_t;
 
 typedef struct sound_manager_s {
+    asset_cache_t samples;
     list_t played_samples;
     SDL_AudioSpec *spec;
     bool open;
 } sound_manager_t;
 
-
+void sound_manager_init(sound_manager_t *s_manager);
 sound_manager_t * sound_manager_new(void);
+void sound_manager_clean(sound_manager_t *s_manager);
 void sound_manager_free(sound_manager_t *s_manager);
 sample_playback_t * sound_manager_play_sample(sound_manager_t *s_manager, sample_t *sample, int volume, bool loop, void **parent_ptr);
 sample_t * load_sample(sound_manager_t *s_manager, const char *path);

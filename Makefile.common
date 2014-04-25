@@ -2,7 +2,7 @@ CC = clang
 CORE_PATH = $(ROOT_PATH)/core
 EXTERNAL_PATH = $(ROOT_PATH)/external
 INCLUDES = -I$(ROOT_PATH) -I$(EXTERNAL_PATH)
-CFLAGS = -pedantic -std=c99 -Wall -g $(INCLUDES)
+CFLAGS = -pedantic -std=c99 -Wall -g $(INCLUDES) -DUSE_DMT
 CORE_C_FILES = event.c \
           int_list.c \
           mem_wrap.c \

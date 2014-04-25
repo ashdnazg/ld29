@@ -1,5 +1,6 @@
 #include "sdl.h"
 #include "sdl_video.h"
+#include "sdl_audio.h"
 
 #include <stdint.h>
 #include <stdio.h>
@@ -100,6 +101,7 @@ void check_input(game_t *game, system_t * system, MAYBE(void *) system_params, M
 
 void sys_SDL_clean(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
+    sound_manager_clean(&(sys_SDL_data->sound_manager));
     if (sys_SDL_data->ren != NULL) {
         SDL_DestroyRenderer(sys_SDL_data->ren);
         render_manager_clean(&(sys_SDL_data->render_manager));
@@ -129,6 +131,7 @@ bool start(game_t *game, system_t *system) {
     memset(sys_SDL_data->key_states, FALSE, sizeof(sys_SDL_data->key_states));
     memset(sys_SDL_data->key_press_events, NO_EVENT, sizeof(sys_SDL_data->key_press_events));
     memset(sys_SDL_data->key_release_events, NO_EVENT, sizeof(sys_SDL_data->key_release_events));
+    sound_manager_init(&(sys_SDL_data->sound_manager));
     
     if (SDL_Init(SDL_INIT_EVERYTHING | SDL_INIT_NOPARACHUTE) == -1){
         return FALSE;
