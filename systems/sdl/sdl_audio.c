@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <assert.h>
 
+#include "sdl.h"
 #include "sdl_audio.h"
 
 #include "core/mem_wrap.h"
@@ -84,7 +85,8 @@ void sound_manager_free(sound_manager_t *s_manager) {
     mem_free(s_manager);
 }
 
-sample_playback_t * sound_manager_play_sample(sound_manager_t *s_manager, sample_t *sample, int volume, bool loop, void **parent_ptr) {
+sample_playback_t * sound_manager_play_sample(sound_manager_t *s_manager, const char *sample_name, int volume, bool loop, void **parent_ptr) {
+    sample_t *sample = sound_manager_get_sample(s_manager, sample_name);
     sample_playback_t *playback = sample_playback_new(sample, volume, loop, parent_ptr);
     if(!(s_manager->open)) {
         memcpy(s_manager->spec, sample->spec, sizeof(SDL_AudioSpec));
@@ -119,18 +121,32 @@ void sample_free(sample_t * sample) {
 }
 
 
+sample_t * sound_manager_get_sample(sound_manager_t *s_manager, const char *name) {
+    MAYBE(sample_t *) maybe_sample = asset_cache_get(&(s_manager->samples), name);
+    if (UNMAYBE(maybe_sample) != NULL) {
+        return (sample_t *) UNMAYBE(maybe_sample);
+    }
+    return load_sample(s_manager, name);
+}
+
 sample_t * load_sample(sound_manager_t *s_manager, const char *name) {
+    sample_t *sample;
     Uint8 *data;
     Uint32 len;
     SDL_AudioSpec *spec = mem_alloc(sizeof(SDL_AudioSpec));
     SDL_AudioSpec *ret_spec;
     
-    ret_spec = SDL_LoadWAV(path, spec, &(data), &(len));
+    char path_buffer[BUFFER_SIZE];
+    sprintf(path_buffer, "%s%s%s", ASSETS_DIR, name, SAMPLE_EXTENSION);
+    
+    ret_spec = SDL_LoadWAV(path_buffer, spec, &(data), &(len));
     exit_on_SDL_sound_error(ret_spec);
     
     spec->callback = (SDL_AudioCallback) sound_callback;
     spec->userdata = s_manager;
     
-    return sample_new(data, len, spec);
+    sample = sample_new(data, len, spec); 
+    asset_cache_add(&(s_manager->samples), sample, name);
+    return sample;
     
 }

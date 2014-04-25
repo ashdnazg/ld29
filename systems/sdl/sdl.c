@@ -164,5 +164,6 @@ bool start(game_t *game, system_t *system) {
     //render_manager_create_renderable(&(sys_SDL_data->render_manager), "black", -sys_SDL_data->render_manager.x_offset, -sys_SDL_data->render_manager.y_offset, 0);
     renderable_t *rend = render_manager_create_renderable(&(sys_SDL_data->render_manager), "anim00", 20, 20, -200);
     render_manager_play_animation(&(sys_SDL_data->render_manager), rend, "anim", 60, TRUE);
+    sound_manager_play_sample(&(sys_SDL_data->sound_manager), "ambient", 20, FALSE, NULL);
     return TRUE;
 }
