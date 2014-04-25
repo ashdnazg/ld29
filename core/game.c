@@ -55,8 +55,8 @@ void game_start(game_t *game) {
     }
 }
 
-component_t * entity_add_component(game_t *game, entity_t *entity, uint32_t component_type_id) {
-    component_t *component = component_new(&(game->components_map), component_type_id);
+component_t * entity_add_component(game_t *game, system_t *system, entity_t *entity, uint32_t component_id) {
+    component_t *component = component_new(&(game->components_map), GET_COMPONENT_ID(system, component_id));
     list_insert_tail(&(entity->components), component);
     return component;
 }
@@ -77,8 +77,10 @@ void game_toggle_pause(game_t *game, system_t * system, MAYBE(void *) system_par
     if (game->paused) {
         game->paused = FALSE;
         game_push_event(game, NULL, EVENT_UNPAUSE, MAYBIFY(NULL));
+        printf("unpaused\n");
     } else {
         game->paused = TRUE;
         game_push_event(game, NULL, EVENT_PAUSE, MAYBIFY(NULL));
+        printf("paused\n");
     }
 }

@@ -7,6 +7,7 @@ extern "C" {
 #endif /* __cplusplus */
 
 enum builtin_events_e {
+    NO_EVENT,
     EVENT_NEW_STEP,
     EVENT_NEW_FRAME,
     EVENT_START,

@@ -38,13 +38,12 @@ struct events_map_s {
 
 #include "game.h"
 
-#define CUSTOM_EVENT(var) __CUSTOM_EVENT_ ## var
-#define IS_CUSTOM(event_id) (event_id & 0x80000000)
-#define GET_CUSTOM_EVENT_ID(system, custom_id) ((system)->local_events_map[(custom_id) & 0x7FFFFFFF])
-#define GET_EVENT_ID(system, event_id) (IS_CUSTOM(event_id) ? GET_CUSTOM_EVENT_ID(system, event_id) : event_id)
-#define LOCAL_EVENT(name) (CUSTOM_EVENT(name) | 0x80000000)
-#define LOCAL_EVENTS enum __LOCAL_EVENTS {
-#define END_LOCAL_EVENTS ,__LOCAL_EVENTS_COUNT};
+#define EVENT_IS_CUSTOM(event_id) (event_id & 0x40000000)
+#define GET_CUSTOM_EVENT_ID(system, custom_id) ((system)->local_events_map[(custom_id) & 0x3FFFFFFF])
+#define GET_EVENT_ID(system, event_id) (EVENT_IS_CUSTOM(event_id) ? GET_CUSTOM_EVENT_ID(system, event_id) : event_id)
+#define LOCAL_EVENTS enum __LOCAL_EVENTS { __DUMMY_EVENT = 0x3FFFFFFF,
+#define END_LOCAL_EVENTS ,__DUMMY_LAST_EVENT};
+#define __LOCAL_EVENTS_COUNT (__DUMMY_LAST_EVENT & 0x3FFFFFFF)
 
 #define EVENT_NAME_MAX_LENGTH 100
 

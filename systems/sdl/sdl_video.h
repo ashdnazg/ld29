@@ -60,7 +60,9 @@ typedef struct render_manager_s {
     SDL_Renderer *renderer;
     list_t renderables;
     list_t animation_playbacks;
+    asset_cache_t animations;
     asset_cache_t textures;
+    asset_cache_t sprites;
     int x_offset;
     int y_offset;
 } render_manager_t;

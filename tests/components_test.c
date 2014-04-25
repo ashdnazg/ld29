@@ -9,8 +9,8 @@
 
 
 LOCAL_COMPONENTS
-    CUSTOM_COMPONENT(component1),
-    CUSTOM_COMPONENT(component2)
+    component1,
+    component2
 END_LOCAL_COMPONENTS
 
 COMPONENT_DATA(component1) {
@@ -43,7 +43,7 @@ void CLEAN_DATA(component2) (void *data) {
 
 
 int main(int argc, char* argv[]) {
-    mem_wrap_init();
+    printf("number of local components: %d\n", __LOCAL_COMPONENTS_COUNT);
     system_t *sys = system_new();
     entity_t *ent;
     game_t game;
@@ -56,8 +56,8 @@ int main(int argc, char* argv[]) {
     game_start(&game);
     printf("processed\n");
     ent = entity_create(&game, mem_strdup("test entity"));
-    entity_add_component(&game, ent, LOCAL_COMPONENT(sys,component1));
-    entity_add_component(&game, ent, LOCAL_COMPONENT(sys,component2));
+    entity_add_component(&game, sys, ent, component1);
+    entity_add_component(&game, sys, ent, component2);
     
     
     game_clean(&game);

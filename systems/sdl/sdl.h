@@ -18,6 +18,11 @@ extern "C" {
 #define SKIP_THRESHOLD 5
 #define MAX_SKIP 5
 
+#ifdef _WIN32
+#define ASSETS_DIR "assets\\"
+#else
+#define ASSETS_DIR "assets/"
+#endif
 
 typedef struct sys_SDL_data_s {
     SDL_Window *win;
@@ -27,6 +32,8 @@ typedef struct sys_SDL_data_s {
     int frames_this_second;
     uint32_t last_time;
     bool key_states[SDL_NUM_SCANCODES];
+    uint32_t key_press_events[SDL_NUM_SCANCODES];
+    uint32_t key_release_events[SDL_NUM_SCANCODES];
 } sys_SDL_data_t;
 
 bool start(game_t *game, system_t *system);

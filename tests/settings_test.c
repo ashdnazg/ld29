@@ -4,7 +4,6 @@
 #include <unistd.h>
 
 int main(int argc, char* argv[]) {
-    mem_wrap_init();
     char buff[255];
     getcwd(buff, sizeof (buff));
     printf("path=%s\n", buff);
@@ -12,7 +11,7 @@ int main(int argc, char* argv[]) {
     printf("a: %ld\n", a);
     MAYBE(char *) b = settings_get_string("B");
     if (UNMAYBE(b) != NULL) {
-        printf("b: %s\n", UNMAYBE(b));
+        printf("b: %s\n", (char *) UNMAYBE(b));
         mem_free(UNMAYBE(b));
     }
     mem_wrap_print_mallocs();

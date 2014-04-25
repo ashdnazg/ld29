@@ -9,10 +9,10 @@
 #include <stdio.h>
 
 LOCAL_EVENTS
-    CUSTOM_EVENT(event1),
-    CUSTOM_EVENT(event2),
-    CUSTOM_EVENT(event3),
-    CUSTOM_EVENT(exevent)
+    event1,
+    event2,
+    event3,
+    exevent
 END_LOCAL_EVENTS
 
 void print_something(game_t *game, system_t *system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
@@ -25,7 +25,7 @@ void print_something(game_t *game, system_t *system, MAYBE(void *) system_params
 }
 
 int main(int argc, char* argv[]) {
-    mem_wrap_init();
+    printf("number of local events: %d\n", __LOCAL_EVENTS_COUNT);
     game_t game;
     system_t *sys = system_new();
     //system_t logger;
@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     game_clean(&game);
     printf("events_cleaned\n");
     
-    system_free(sys);
+    //system_free(sys);
     //system_clean(&logger);
     printf("system_cleaned\n");
 

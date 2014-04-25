@@ -2,7 +2,7 @@ CC = clang
 CORE_PATH = $(ROOT_PATH)/core
 EXTERNAL_PATH = $(ROOT_PATH)/external
 INCLUDES = -I$(ROOT_PATH) -I$(EXTERNAL_PATH)
-CFLAGS = -pedantic -std=c99 -Wall -g $(INCLUDES)
+CFLAGS = -pedantic -std=c99 -Wall -g $(INCLUDES) -DUSE_DMT
 CORE_C_FILES = event.c \
           int_list.c \
           mem_wrap.c \
@@ -29,11 +29,13 @@ CORE_HEADERS = event.h \
                tween.h 
 
 EXTERNAL_C_FILES = stb_image.c \
-                   minIni.c
+                   minIni.c \
+                   dmt.c
 
 EXTERNAL_HEADERS = stb_image.h \
                    minIni.h \
-                   minGlue.h
+                   minGlue.h \
+                   dmt.h
 
 CORE_O_FILES = $(addprefix $(CORE_PATH)/, $(CORE_C_FILES:%.c=%.o))
 CORE_HEADERS := $(addprefix $(CORE_PATH)/, $(CORE_HEADERS))

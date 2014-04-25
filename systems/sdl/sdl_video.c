@@ -40,7 +40,9 @@ void animation_playback_animate(animation_playback_t * playback) {
     ++playback->total_steps;
 }
 
+void renderable_init(sprite_t *default_sprite, int x, int y, int depth) {
 
+}
 renderable_t * renderable_new(sprite_t *default_sprite, int x, int y, int depth) {
     renderable_t *renderable = mem_alloc(sizeof(renderable_t));
     list_init(&(renderable->tweens), tween_t, tweens_link);

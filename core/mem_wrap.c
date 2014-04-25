@@ -1,4 +1,5 @@
 #include "mem_wrap.h"
+#include "dmt.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -7,26 +8,34 @@
 unsigned int g_mem_mem_allocs_count;
 
 void * mem_alloc(size_t size) {
+#ifndef USE_DMT
     void *ptr = malloc(size);
     assert(ptr != NULL);
     ++g_mem_mem_allocs_count;
     return ptr;
+#else
+    return dmt_malloc(size);
+#endif
 }
 
 void mem_free(void *ptr) {
+#ifndef USE_DMT
     --g_mem_mem_allocs_count;
     free(ptr);
-}
-
-void mem_wrap_init(void) {
-    g_mem_mem_allocs_count = 0;
+#else
+    dmt_free(ptr);
+#endif
 }
 
 void mem_wrap_print_mallocs(void) {
+#ifndef USE_DMT
     printf("\nUnfreed mallocs: %d", g_mem_mem_allocs_count);
+#else
+    dmt_dump(stdout);
+#endif
 }
 
 char * mem_strdup(const char *s) {
-    ++g_mem_mem_allocs_count;
-    return strdup(s);
+    char *t = mem_alloc(strlen(s));
+    return t;
 }

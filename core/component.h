@@ -30,10 +30,14 @@ struct components_map_s {
 #include "entity.h"
 #include "system.h"
 
-#define CUSTOM_COMPONENT(var) __CUSTOM_COMPONENT_ ## var
-#define LOCAL_COMPONENT(system, name) ((system)->local_components_map[CUSTOM_COMPONENT(name)])
-#define LOCAL_COMPONENTS enum __LOCAL_COMPONENT {
-#define END_LOCAL_COMPONENTS ,__LOCAL_COMPONENTS_COUNT};
+
+
+#define COMPONENT_IS_CUSTOM(component_id) (component_id & 0x40000000)
+#define GET_CUSTOM_COMPONENT_ID(system, custom_id) ((system)->local_components_map[(custom_id) & 0x3FFFFFFF])
+#define GET_COMPONENT_ID(system, component_id) (COMPONENT_IS_CUSTOM(component_id) ? GET_CUSTOM_COMPONENT_ID(system, component_id) : component_id)
+#define LOCAL_COMPONENTS enum __LOCAL_COMPONENTS { __DUMMY_COMPONENT = 0x3FFFFFFF,
+#define END_LOCAL_COMPONENTS ,__DUMMY_LAST_COMPONENT};
+#define __LOCAL_COMPONENTS_COUNT (__DUMMY_LAST_COMPONENT & 0x3FFFFFFF)
 
 #define COMPONENT_DATA(name) struct __ ## name ## _data_s
 
@@ -89,7 +93,7 @@ void component_free(component_t *component);
     do { \
         system_init_local_components_map(system, __LOCAL_COMPONENTS_COUNT); \
         _components_map_export(map, #name, INIT_DATA(name), CLEAN_DATA(name), sizeof(COMPONENT_DATA(name)));\
-        _components_map_import(map, system, #name, CUSTOM_COMPONENT(name));\
+        _components_map_import(map, system, #name, name);\
     } while (0);
 
 void _components_map_export(components_map_t *components_map, const char *name, data_init_t init_callback, data_clean_t clean_callback, uint32_t data_size);
@@ -97,7 +101,7 @@ void _components_map_export(components_map_t *components_map, const char *name, 
 #define components_map_import(map, system, name) \
     do { \
         system_init_local_components_map(system, __LOCAL_COMPONENTS_COUNT); \
-        _components_map_import(map, system, #name, CUSTOM_COMPONENT(name));\
+        _components_map_import(map, system, #name, name);\
     } while (0);
 
 void _components_map_import(components_map_t *components_map, system_t *system, const char *name, uint32_t local_index);

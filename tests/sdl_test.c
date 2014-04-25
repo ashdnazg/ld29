@@ -11,7 +11,6 @@
 #include <stdio.h>
 
 int main(int argc, char* argv[]) {
-    mem_wrap_init();
     game_t game;
     game_init(&game);
     system_t *sys = system_new();

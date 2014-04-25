@@ -37,7 +37,7 @@ void game_load_systems(game_t *game);
 
 void game_start(game_t *game);
 
-component_t * entity_add_component(game_t *game, entity_t *entity, uint32_t component_type_id);
+component_t * entity_add_component(game_t *game, system_t *system, entity_t *entity, uint32_t component_id);
 
 entity_t * entity_create(game_t *game, char *name);
 
@@ -51,26 +51,26 @@ void game_toggle_pause(game_t *game, system_t * system, MAYBE(void *) system_par
     do { \
         system_init_local_events_map(system, __LOCAL_EVENTS_COUNT); \
         _events_map_export(&((game)->events_map), #name, sender_params_free);\
-        _events_map_import(&((game)->events_map), system, #name, CUSTOM_EVENT(name));\
+        _events_map_import(&((game)->events_map), system, #name, name);\
     } while (0);
 
 #define game_import_event(game, system, name) \
     do { \
         system_init_local_events_map(system, __LOCAL_EVENTS_COUNT); \
-        _events_map_import(&((game)->events_map), system, #name, CUSTOM_EVENT(name));\
+        _events_map_import(&((game)->events_map), system, #name, name);\
     } while (0);
 
 #define game_export_component(game, system, name) \
     do { \
         system_init_local_components_map(system, __LOCAL_COMPONENTS_COUNT); \
         _components_map_export(&((game)->components_map), #name, INIT_DATA(name), CLEAN_DATA(name), sizeof(COMPONENT_DATA(name)));\
-        _components_map_import(&((game)->components_map), system, #name, CUSTOM_COMPONENT(name));\
+        _components_map_import(&((game)->components_map), system, #name, name);\
     } while (0);
 
 #define game_import_component(game, system, name) \
     do { \
         system_init_local_components_map(system, __LOCAL_COMPONENTS_COUNT); \
-        _components_map_import(&((game)->components_map), system, #name, CUSTOM_COMPONENT(name));\
+        _components_map_import(&((game)->components_map), system, #name, name);\
     } while (0);
 
     

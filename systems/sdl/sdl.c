@@ -1,33 +1,45 @@
 #include "sdl.h"
+#include "sdl_video.h"
+
+#include <stdint.h>
+#include <stdio.h>
 #include <SDL2/SDL.h>
+
 #include "core/system.h"
 #include "core/event.h"
 #include "core/macros.h"
 #include "core/mem_wrap.h"
 #include "core/builtin_events.h"
 #include "core/game.h"
-#include <stdint.h>
-#include <stdio.h>
-#include "sdl_video.h"
-
+#include "core/settings.h"
 
 LOCAL_EVENTS
-    CUSTOM_EVENT(sdl_check_input)
+    sdl_check_input
 END_LOCAL_EVENTS
 
-void key_pressed(game_t *game, system_t *system, SDL_Keycode keycode) {
-    switch (keycode) {
-        case SDLK_p:
-            game_push_event(game, system, EVENT_TOGGLE_PAUSE, MAYBIFY(NULL));
-            break;
+LOCAL_COMPONENTS
+    renderable
+END_LOCAL_COMPONENTS
+
+COMPONENT_DATA(renderable) {
+    renderable_t renderable;
+};
+
+
+
+void key_pressed(game_t *game, system_t *system, SDL_Scancode scancode, sys_SDL_data_t *sys_SDL_data) {
+    if (sys_SDL_data->key_press_events[scancode] != NO_EVENT) {
+        game_push_event(game, system, sys_SDL_data->key_press_events[scancode], MAYBIFY(NULL));
     }
 }
 
-void key_released(game_t *game, system_t *system, SDL_Keycode keycode) {
-
+void key_released(game_t *game, system_t *system, SDL_Keycode scancode, sys_SDL_data_t *sys_SDL_data) {
+    if (sys_SDL_data->key_release_events[scancode] != NO_EVENT) {
+        game_push_event(game, system, sys_SDL_data->key_release_events[scancode], MAYBIFY(NULL));
+    }
 }
 
-void sys_SDL_check_input(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+void check_input(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     SDL_Event e;
     bool draw;
     int32_t time_to_next;
@@ -40,13 +52,13 @@ void sys_SDL_check_input(game_t *game, system_t * system, MAYBE(void *) system_p
             case SDL_KEYDOWN:
                 if (!(sys_SDL_data->key_states[e.key.keysym.scancode])) {
                     sys_SDL_data->key_states[e.key.keysym.scancode] = TRUE;
-                    key_pressed(game, system, e.key.keysym.sym);
+                    key_pressed(game, system, e.key.keysym.scancode, sys_SDL_data);
                 }
                 break;
             case SDL_KEYUP:
                 if (sys_SDL_data->key_states[e.key.keysym.scancode]) {
                     sys_SDL_data->key_states[e.key.keysym.scancode] = FALSE;
-                    key_released(game, system, e.key.keysym.sym);
+                    key_released(game, system, e.key.keysym.scancode, sys_SDL_data);
                 }
                 break;
         }
@@ -83,7 +95,7 @@ void sys_SDL_check_input(game_t *game, system_t * system, MAYBE(void *) system_p
     } else {
         SDL_Delay(1);
     }
-    game_push_event(game, system, LOCAL_EVENT(sdl_check_input), MAYBIFY(NULL));
+    game_push_event(game, system, sdl_check_input, MAYBIFY(NULL));
 }
 
 void sys_SDL_clean(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
@@ -108,14 +120,16 @@ bool start(game_t *game, system_t *system) {
     sys_SDL_data->frames_this_second = 0;
     sys_SDL_data->last_time = SDL_GetTicks();
     memset(sys_SDL_data->key_states, FALSE, sizeof(sys_SDL_data->key_states));
+    memset(sys_SDL_data->key_press_events, NO_EVENT, sizeof(sys_SDL_data->key_press_events));
+    memset(sys_SDL_data->key_release_events, NO_EVENT, sizeof(sys_SDL_data->key_release_events));
     
     if (SDL_Init(SDL_INIT_EVERYTHING | SDL_INIT_NOPARACHUTE) == -1){
         return FALSE;
     }
     game_export_event(game, system, sdl_check_input, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, sys_SDL_clean, MAYBIFY(sys_SDL_data), EVENT_EXIT, MAYBIFY_FUNC(mem_free));
-    game_register_hook(game, system, sys_SDL_check_input, MAYBIFY(sys_SDL_data), EVENT_START, MAYBIFY_FUNC(NULL));
-    game_register_hook(game, system, sys_SDL_check_input, MAYBIFY(sys_SDL_data), LOCAL_EVENT(sdl_check_input), MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, check_input, MAYBIFY(sys_SDL_data), EVENT_START, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, check_input, MAYBIFY(sys_SDL_data), sdl_check_input, MAYBIFY_FUNC(NULL));
     
     sys_SDL_data->win = SDL_CreateWindow(GAME_NAME, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAME_WIDTH * WINDOW_SCALE, GAME_HEIGHT * WINDOW_SCALE, SDL_WINDOW_SHOWN);
     if (sys_SDL_data->win == NULL) {
@@ -126,5 +140,16 @@ bool start(game_t *game, system_t *system) {
         return FALSE;
     }
     SDL_RenderSetLogicalSize(sys_SDL_data->ren, GAME_WIDTH, GAME_HEIGHT);
+
+
+    MAYBE(char *) pause_key_str = settings_get_string("pause_key");
+    if(UNMAYBE(pause_key_str) == NULL) {
+        sys_SDL_data->key_press_events[SDL_GetScancodeFromKey('p')] = EVENT_TOGGLE_PAUSE;
+    } else {
+        sys_SDL_data->key_press_events[SDL_GetScancodeFromKey(((char*) UNMAYBE(pause_key_str))[0])] = EVENT_TOGGLE_PAUSE;
+        mem_free(UNMAYBE(pause_key_str));
+    }
+
+
     return TRUE;
 }
