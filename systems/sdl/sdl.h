@@ -10,6 +10,9 @@ extern "C" {
 #include "core/game.h"
 #include <stdint.h>
 
+
+#include "sdl_video.h"
+
 #define GAME_NAME "AESIS"
 #define GAME_WIDTH 320
 #define GAME_HEIGHT 240
@@ -34,6 +37,7 @@ typedef struct sys_SDL_data_s {
     bool key_states[SDL_NUM_SCANCODES];
     uint32_t key_press_events[SDL_NUM_SCANCODES];
     uint32_t key_release_events[SDL_NUM_SCANCODES];
+    render_manager_t render_manager;
 } sys_SDL_data_t;
 
 bool start(game_t *game, system_t *system);

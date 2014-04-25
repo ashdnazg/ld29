@@ -7,16 +7,17 @@
 
 unsigned int g_mem_mem_allocs_count;
 
-void * mem_alloc(size_t size) {
 #ifndef USE_DMT
+void * mem_alloc(size_t size) {
     void *ptr = malloc(size);
     assert(ptr != NULL);
     ++g_mem_mem_allocs_count;
     return ptr;
-#else
     return dmt_malloc(size);
-#endif
 }
+
+#endif
+
 
 void mem_free(void *ptr) {
 #ifndef USE_DMT

@@ -1,6 +1,8 @@
 #include <SDL2/SDL.h>
 #include <assert.h>
+#include <string.h>
 
+#include "sdl.h"
 #include "sdl_video.h"
 #include "stb_image.h"
 
@@ -40,11 +42,15 @@ void animation_playback_animate(animation_playback_t * playback) {
     ++playback->total_steps;
 }
 
-void renderable_init(sprite_t *default_sprite, int x, int y, int depth) {
-
+sprite_t *render_manager_get_sprite(render_manager_t *r_manager, const char *name) {
+    MAYBE(sprite_t *) maybe_spr = asset_cache_get(&(r_manager->sprites), name);
+    if (UNMAYBE(maybe_spr) != NULL) {
+        return (sprite_t *) UNMAYBE(maybe_spr);
+    }
+    return load_sprite(r_manager, name);
 }
-renderable_t * renderable_new(sprite_t *default_sprite, int x, int y, int depth) {
-    renderable_t *renderable = mem_alloc(sizeof(renderable_t));
+
+void renderable_init(renderable_t *renderable, sprite_t *default_sprite, int x, int y, int depth) {
     list_init(&(renderable->tweens), tween_t, tweens_link);
     renderable->sprite = default_sprite;
     renderable->default_sprite = default_sprite;
@@ -57,10 +63,16 @@ renderable_t * renderable_new(sprite_t *default_sprite, int x, int y, int depth)
     renderable->flip = SDL_FLIP_NONE;
     renderable->animation_playback = NULL;
     link_init(&(renderable->renderables_link));
+}
+
+
+renderable_t * renderable_new(sprite_t *default_sprite, int x, int y, int depth) {
+    renderable_t *renderable = mem_alloc(sizeof(renderable_t));
+    renderable_init(renderable, default_sprite, x, y, depth);
     return renderable;
 }
 
-void renderable_free(renderable_t *renderable) {
+void renderable_clean(renderable_t *renderable) {
     if (renderable->animation_playback != NULL) {
         animation_playback_free(renderable->animation_playback);
     }
@@ -68,6 +80,10 @@ void renderable_free(renderable_t *renderable) {
         tween_free(tween);
     }
     link_remove_from_list(&(renderable->renderables_link));
+}
+
+void renderable_free(renderable_t *renderable) {
+    renderable_clean(renderable);
     mem_free(renderable);
 }
 
@@ -79,28 +95,76 @@ animation_t * animation_new(sprite_t **frames, unsigned int num_frames) {
     return animation;
 }
 
+bool file_exists(const char *path) {
+    FILE *f = fopen(path, "rb");
+    if (f == NULL) {
+        return FALSE;
+    } else {
+        fclose(f);
+        return TRUE;
+    }
+}
+
+animation_t * load_animation(render_manager_t *r_manager, const char * name) {
+    int i = 0;
+    animation_t *anim;
+    char path_buffer[BUFFER_SIZE];
+    sprite_t *frames[MAX_FRAMES];
+    while (TRUE) {
+        sprintf(path_buffer, "%s%s%02d%s", ASSETS_DIR, name, i, SPRITE_EXTENSION);
+        if (!file_exists(path_buffer) || i >= MAX_FRAMES) {
+            break;
+        }
+        sprintf(path_buffer, "%s%02d", name, i);
+        frames[i] = render_manager_get_sprite(r_manager, path_buffer);
+        ++i;
+    }
+    anim = animation_new(frames, i);
+    asset_cache_add(&(r_manager->animations), anim, name);
+    return anim;
+}
+
 void animation_free(animation_t *animation) {
     mem_free(animation->frames);
     mem_free(animation);
 }
 
-render_manager_t * render_manager_new(SDL_Renderer *renderer) {
-    render_manager_t *r_manager = mem_alloc(sizeof(render_manager_t));
+animation_t * render_manager_get_animation(render_manager_t *r_manager, const char * name) {
+    MAYBE(animation_t *) maybe_anim = asset_cache_get(&(r_manager->animations), name);
+    if (UNMAYBE(maybe_anim) != NULL) {
+        return (animation_t *) UNMAYBE(maybe_anim);
+    }
+    return load_animation(r_manager, name);
+}
+
+void render_manager_init(render_manager_t *r_manager, SDL_Renderer *renderer) {
     r_manager->renderer = renderer;
     list_init(&(r_manager->renderables), renderable_t, renderables_link);
     list_init(&(r_manager->animation_playbacks), animation_playback_t, animation_playbacks_link);
+    asset_cache_init(&(r_manager->animations) , MAYBIFY_FUNC(animation_free));
     asset_cache_init(&(r_manager->textures) , MAYBIFY_FUNC(SDL_DestroyTexture));
+    asset_cache_init(&(r_manager->sprites) , MAYBIFY_FUNC(sprite_free));
     r_manager->x_offset = 0;
     r_manager->y_offset = 0;
-    return r_manager;
 }
 
-void render_manager_free(render_manager_t *r_manager) {
+render_manager_t * render_manager_new(SDL_Renderer *renderer) {
+    render_manager_t *r_manager = mem_alloc(sizeof(render_manager_t));
+    render_manager_init(r_manager, renderer);
+    return r_manager;
+}
+void render_manager_clean(render_manager_t *r_manager) {
     list_for_each(&(r_manager->renderables), renderable_t *, renderable) {
         renderable_free(renderable);
     }
     assert(list_head(&(r_manager->animation_playbacks)) == NULL);
+    asset_cache_clean(&(r_manager->animations));
     asset_cache_clean(&(r_manager->textures));
+    asset_cache_clean(&(r_manager->sprites));
+}
+
+void render_manager_free(render_manager_t *r_manager) {
+    render_manager_clean(r_manager);
     mem_free(r_manager);
 }
 
@@ -110,14 +174,17 @@ void render_manager_clear(render_manager_t *r_manager) {
     }
 }
 
-renderable_t * render_manager_create_renderable(render_manager_t *r_manager, sprite_t *default_sprite, int x, int y, int depth) {
+renderable_t * render_manager_create_renderable(render_manager_t *r_manager, const char *default_sprite_name, int x, int y, int depth) {
+    sprite_t *default_sprite = render_manager_get_sprite(r_manager, default_sprite_name);
     renderable_t *renderable = renderable_new(default_sprite, x , y, depth);
     list_insert_tail(&(r_manager->renderables), renderable);
     return renderable;
 }
 
+
 void render_manager_play_animation(render_manager_t *r_manager, renderable_t *renderable, 
-                                    animation_t *animation, unsigned int interval, bool loop) {
+                                    const char *animation_name, unsigned int interval, bool loop) {
+    animation_t *animation = render_manager_get_animation(r_manager, animation_name);
     render_manager_stop_animation(r_manager, renderable);
     animation_playback_t * playback = animation_playback_new(renderable, animation, interval, loop);
     renderable->animation_playback = playback;
@@ -224,12 +291,24 @@ void draw_image(render_manager_t *r_manager, SDL_Texture *texture, int x, int y)
     SDL_RenderCopy(r_manager->renderer, texture, NULL, &pos);
 }
 
-sprite_t * load_sprite(render_manager_t *r_manager, const char * path) {
+sprite_t * load_sprite(render_manager_t *r_manager, const char * name) {
+    sprite_t *spr;
+    char path_buffer[BUFFER_SIZE];
+    sprintf(path_buffer, "%s%s%s", ASSETS_DIR, name, SPRITE_EXTENSION);
     int texture_width, texture_height;
-    SDL_Texture *texture = load_image(r_manager, path);
+    SDL_Texture *texture = load_image(r_manager, path_buffer);
     SDL_QueryTexture(texture, NULL, NULL, &texture_width, &texture_height);
-    return sprite_new(texture, 0, 0, texture_width, texture_height);
+    spr = sprite_new(texture, 0, 0, texture_width, texture_height);
+    asset_cache_add(&(r_manager->sprites), spr, name);
+    return spr;
 }
+
+// sprite_t * load_sprite(render_manager_t *r_manager, const char * path) {
+    // int texture_width, texture_height;
+    // SDL_Texture *texture = load_image(r_manager, path);
+    // SDL_QueryTexture(texture, NULL, NULL, &texture_width, &texture_height);
+    // return sprite_new(texture, 0, 0, texture_width, texture_height);
+// }
 
 sprite_t ** load_sprite_sheet(render_manager_t *r_manager, const char * path, 
                         int spr_width, int spr_height, int padding, unsigned int *out_num_sprites) {

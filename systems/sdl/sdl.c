@@ -102,11 +102,18 @@ void sys_SDL_clean(game_t *game, system_t * system, MAYBE(void *) system_params,
     sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
     if (sys_SDL_data->ren != NULL) {
         SDL_DestroyRenderer(sys_SDL_data->ren);
+        render_manager_clean(&(sys_SDL_data->render_manager));
     }
     if (sys_SDL_data->win != NULL) {
         SDL_DestroyWindow(sys_SDL_data->win);
     }
     SDL_Quit();
+}
+
+void sys_SDL_draw(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
+    render_manager_animate(&(sys_SDL_data->render_manager));
+    render_manager_draw(&(sys_SDL_data->render_manager));
 }
 
 
@@ -130,6 +137,7 @@ bool start(game_t *game, system_t *system) {
     game_register_hook(game, system, sys_SDL_clean, MAYBIFY(sys_SDL_data), EVENT_EXIT, MAYBIFY_FUNC(mem_free));
     game_register_hook(game, system, check_input, MAYBIFY(sys_SDL_data), EVENT_START, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_SDL_data), sdl_check_input, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, sys_SDL_draw, MAYBIFY(sys_SDL_data), EVENT_NEW_FRAME, MAYBIFY_FUNC(NULL));
     
     sys_SDL_data->win = SDL_CreateWindow(GAME_NAME, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAME_WIDTH * WINDOW_SCALE, GAME_HEIGHT * WINDOW_SCALE, SDL_WINDOW_SHOWN);
     if (sys_SDL_data->win == NULL) {
@@ -140,7 +148,7 @@ bool start(game_t *game, system_t *system) {
         return FALSE;
     }
     SDL_RenderSetLogicalSize(sys_SDL_data->ren, GAME_WIDTH, GAME_HEIGHT);
-
+    render_manager_init(&(sys_SDL_data->render_manager), sys_SDL_data->ren);
 
     MAYBE(char *) pause_key_str = settings_get_string("pause_key");
     if(UNMAYBE(pause_key_str) == NULL) {
@@ -149,7 +157,9 @@ bool start(game_t *game, system_t *system) {
         sys_SDL_data->key_press_events[SDL_GetScancodeFromKey(((char*) UNMAYBE(pause_key_str))[0])] = EVENT_TOGGLE_PAUSE;
         mem_free(UNMAYBE(pause_key_str));
     }
-
-
+    
+    //render_manager_create_renderable(&(sys_SDL_data->render_manager), "black", -sys_SDL_data->render_manager.x_offset, -sys_SDL_data->render_manager.y_offset, 0);
+    renderable_t *rend = render_manager_create_renderable(&(sys_SDL_data->render_manager), "anim00", 20, 20, -200);
+    render_manager_play_animation(&(sys_SDL_data->render_manager), rend, "anim", 60, TRUE);
     return TRUE;
 }

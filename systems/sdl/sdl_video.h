@@ -12,6 +12,9 @@ extern "C" {
 #include "core/macros.h"
 #include "core/asset_cache.h"
 
+#define SPRITE_EXTENSION ".png"
+#define MAX_FRAMES 100
+
 #define RGBA 4
 #define RMASK 0x000000ff
 #define GMASK 0x0000ff00
@@ -71,7 +74,7 @@ typedef struct render_manager_s {
 void exit_on_SDL_error(void * pt);
 void exit_on_stbi_error(void * pt);
 SDL_Texture* load_image(render_manager_t *r_manager, const char * path);
-sprite_t * load_sprite(render_manager_t *r_manager, const char * path);
+sprite_t * load_sprite(render_manager_t *r_manager, const char * name);
 sprite_t ** load_sprite_sheet(render_manager_t *r_manager, const char * path, int spr_width, int spr_height, int padding, unsigned int *out_num_sprites);
 void draw_image(render_manager_t *r_manager, SDL_Texture *texture, int x, int y);
 sprite_t * sprite_new(SDL_Texture *texture, int x, int y, int w, int h);
@@ -82,13 +85,16 @@ animation_t * animation_new(sprite_t **frames, unsigned int num_frames);
 void animation_free(animation_t *animation);
 
 render_manager_t * render_manager_new(SDL_Renderer *renderer);
+void render_manager_init(render_manager_t *r_manager, SDL_Renderer *renderer);
+void render_manager_clean(render_manager_t *r_manager);
 void render_manager_free(render_manager_t *r_manager);
+
 void render_manager_clear(render_manager_t *r_manager);
 
-renderable_t * render_manager_create_renderable(render_manager_t *r_manager, sprite_t *default_sprite, int x, int y, int depth);
+renderable_t * render_manager_create_renderable(render_manager_t *r_manager, const char *default_sprite_name, int x, int y, int depth);
 void renderable_free(renderable_t *renderable);
 
-void render_manager_play_animation(render_manager_t *r_manager, renderable_t *renderable, animation_t *animation, unsigned int interval, bool loop);
+void render_manager_play_animation(render_manager_t *r_manager, renderable_t *renderable, const char *animation_name, unsigned int interval, bool loop);
 void render_manager_stop_animation(render_manager_t *r_manager, renderable_t *renderable);
 void render_manager_draw(render_manager_t *r_manager);
 void render_manager_animate(render_manager_t *r_manager);

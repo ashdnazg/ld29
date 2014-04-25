@@ -13,8 +13,6 @@ extern "C" {
 #define SETTINGS_FILE "bugfixes.ini"
 #endif
 
-#define BUFFER_SIZE 128
-
 
 // typedef struct settings_s {
     // asset_cache_t ints;
