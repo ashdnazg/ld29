@@ -2,6 +2,7 @@
 #include "core/mem_wrap.h"
 #include "core/system.h"
 #include "core/game.h"
+#include "core/int_pheap.h"
 
 #include "map.h"
 #include "stb_image.h"
@@ -11,14 +12,7 @@
 #include <SDL2/sdl.h>
 #include <stdint.h>
 #include <assert.h>
-
-
-map_t *map_get_main_map(game_t *game) {
-    system_t *sys_map = game_get_system(game, SYS_MAP_NAME);
-    map_t *main_map = (map_t *) UNMAYBE(sys_map->data);
-    assert(NULL != main_map);
-    return main_map;
-}
+#include <string.h>
 
 bool tile_passable(tile_type_t type) {
     switch(type) {
@@ -43,8 +37,75 @@ bool tile_passable(tile_type_t type) {
     }
 }
 
+bool map_in_map(map_t *map, int x, int y) {
+        return (x >= 0 && y >= 0 && x <= map->width && y <= map->height);
+}
+
 bool map_tile_passable(map_t *map, int x, int y) {
-    return tile_passable(map->matrix[COORD(map,x,y)]);
+    return map_in_map(map, x, y) && tile_passable(map->matrix[COORD(map,x,y)]);
+}
+
+
+tile_coord_t * tile_coord_new(uint32_t origin_x, uint32_t origin_y) {
+    tile_coord_t *tc = mem_alloc(sizeof(*tc));
+    heap_link_init(tc, coords_link);
+    tc->x = origin_x;
+    tc->y = origin_y;
+    return tc;
+}
+void dijkstra_map_free(dijkstra_map_t *d_map) {
+    mem_free(d_map->matrix);
+    mem_free(d_map);
+}
+
+dijkstra_map_t * map_create_dijkstra(map_t *map, uint32_t origin_x, uint32_t origin_y) {
+    int i,j;
+    int delta = 0;
+    dijkstra_map_t *d_map = mem_alloc(sizeof(*d_map));
+    d_map->height = map->height;
+    d_map->width = map->width;
+    d_map->matrix = mem_alloc(sizeof(*(d_map->matrix)) * map->height * map->width);
+    memset(d_map->matrix, DIJKSTRA_IMPASSABLE, sizeof(*(d_map->matrix)) * map->height * map->width);
+    tile_coord_t *current_tile;
+    heap_t heap;
+    heap_init(&heap, tile_coord_t, coords_link);
+    heap_insert(&heap, tile_coord_new(origin_x, origin_y), 0);
+    
+    while(!heap_is_empty(&heap)) {
+        current_tile = (tile_coord_t *) heap_delete_min(&heap);
+        if (d_map->matrix[COORD(d_map, current_tile->x, current_tile->y)] > current_tile->coords_link.key) {
+            d_map->matrix[COORD(d_map, current_tile->x, current_tile->y)] = current_tile->coords_link.key;
+            //printf ("x: %d, y: %d, key: %d\n", current_tile->x, current_tile->y, current_tile->coords_link.key);
+            for (i = -1; i <= 1; i++) {
+                for (j = -1; j <= 1; j++) {
+                    if (i == 0 && j == 0) {
+                        continue;
+                    }
+                    if (d_map->matrix[COORD(d_map, current_tile->x + j, current_tile->y + i)] != DIJKSTRA_IMPASSABLE) {
+                        continue;
+                    }
+                    if (!map_tile_passable(map, current_tile->x + j, current_tile->y + i)) {
+                        continue;
+                    }
+                    if (i == 0 || j == 0) {
+                        delta = 2;
+                    } else {
+                        delta = 3;
+                    }
+                    heap_insert(&heap, tile_coord_new(current_tile->x + j, current_tile->y + i), current_tile->coords_link.key + delta);
+                }
+            }
+        }
+        mem_free(current_tile); 
+    }
+    return d_map;
+}
+
+map_t *map_get_main_map(game_t *game) {
+    system_t *sys_map = game_get_system(game, SYS_MAP_NAME);
+    map_t *main_map = (map_t *) UNMAYBE(sys_map->data);
+    assert(NULL != main_map);
+    return main_map;
 }
 
 void map_clean(map_t *map) {
@@ -58,6 +119,44 @@ void map_clean(map_t *map) {
         // }
     // }
     mem_free(map->renderables);
+}
+
+bool map_rect_passable(map_t *map, int left, int top, int width, int height) {
+    uint32_t tile_x, tile_y;
+    if(!map_translate_coordinates(map, left, top, &tile_x, &tile_y)) {
+        return FALSE;
+    }
+    if (!map_tile_passable(map, tile_x, tile_y)) {
+        return FALSE;
+    }
+    if(!map_translate_coordinates(map, left + width - 1, top, &tile_x, &tile_y)) {
+        return FALSE;
+    }
+    if (!map_tile_passable(map, tile_x, tile_y)) {
+        return FALSE;
+    }
+    if(!map_translate_coordinates(map, left, top + height - 1, &tile_x, &tile_y)) {
+        return FALSE;
+    }
+    if (!map_tile_passable(map, tile_x, tile_y)) {
+        return FALSE;
+    }
+    if(!map_translate_coordinates(map, left + width -1 , top + height - 1, &tile_x, &tile_y)) {
+        return FALSE;
+    }
+    if (!map_tile_passable(map, tile_x, tile_y)) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+bool map_tile_center(map_t *map, uint32_t x, uint32_t y, int32_t *out_sdl_x, int32_t *out_sdl_y) {
+    if (!map_in_map(map, x, y)) {
+        return FALSE;
+    }
+    *out_sdl_x = x * TILE_SIZE + TILE_SIZE / 2;
+    *out_sdl_y = y * TILE_SIZE + TILE_SIZE / 2;
+    return TRUE;
 }
 
 bool map_translate_coordinates(map_t *map, int x, int y, uint32_t *out_map_x, uint32_t *out_map_y) {

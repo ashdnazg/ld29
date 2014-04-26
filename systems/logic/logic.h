@@ -28,8 +28,8 @@ typedef enum direction_e {
 } direction_t;
 
 typedef struct game_state_s {
-    int controller_x;
-    int controller_y;
+    uint32_t controller_x;
+    uint32_t controller_y;
     map_t *current_map;
 } game_state_t;
 

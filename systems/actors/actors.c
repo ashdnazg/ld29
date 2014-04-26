@@ -11,32 +11,77 @@
 #include <stdint.h>
 
 void actor_move_towards(actor_t *actor, int32_t dest_x, int32_t dest_y) {
-    int delta;
+    int x_delta = 0, y_delta = 0;
     if (dest_x != actor->x) {
-        delta = ABS(dest_x - actor->x) / (dest_x - actor->x);
-        actor->x += delta;
-        actor->renderable->x += delta;
+        x_delta = ABS(dest_x - actor->x) / (dest_x - actor->x);
+        if (map_rect_passable(actor->map, actor->x + x_delta, actor->y, ACTOR_SIZE, ACTOR_SIZE)) {
+            actor->x += x_delta;
+        }
     }
     if (dest_y != actor->y) {
-        delta = ABS(dest_y - actor->y) / (dest_y - actor->y);
-        actor->y += delta;
-        actor->renderable->y += delta;
+        y_delta = ABS(dest_y - actor->y) / (dest_y - actor->y);
+        if (map_rect_passable(actor->map, actor->x, actor->y + y_delta, ACTOR_SIZE, ACTOR_SIZE)) {
+            actor->y += y_delta;
+        }
+    }
+}
+
+void actor_move_dijkstra(actor_t * actor, dijkstra_map_t *d_map) {
+    int i,j;
+    uint32_t actor_tile_x, actor_tile_y, dest_tile_x, dest_tile_y;
+    int32_t dest_x, dest_y;
+    uint32_t minimal_value = UINT32_MAX;
+    int x_delta = 0, y_delta = 0;
+    map_translate_coordinates(actor->map, actor->x, actor->y, &actor_tile_x, &actor_tile_y);
+    
+    for (i = -1; i <= 1; i++) {
+        for (j = -1; j <= 1; j++) {
+            // if (i == 0 && j == 0) {
+                // continue;
+            // }
+            if (!map_in_map(actor->map, actor_tile_x + j, actor_tile_y + i)) {
+                continue;
+            }
+            if (minimal_value > d_map->matrix[COORD(d_map, actor_tile_x + j, actor_tile_y + i)]) {
+                minimal_value = d_map->matrix[COORD(d_map, actor_tile_x + j, actor_tile_y + i)];
+                x_delta = j;
+                y_delta = i;
+            }
+        }
+    }
+    dest_tile_x = actor_tile_x + x_delta;
+    dest_tile_y = actor_tile_y + y_delta;
+    if (!map_rect_passable(actor->map, actor->x + x_delta, actor->y, ACTOR_SIZE, ACTOR_SIZE)) {
+        x_delta = 0;
+    }
+    if (!map_rect_passable(actor->map, actor->x, actor->y + y_delta, ACTOR_SIZE, ACTOR_SIZE)) {
+        y_delta = 0;
+    }
+    if (x_delta == 0 && y_delta == 0) {
+        map_tile_center(actor->map, dest_tile_x, dest_tile_y, &dest_x, &dest_y);
+        actor_move_towards(actor, dest_x - ACTOR_SIZE / 2, dest_y - ACTOR_SIZE / 2);
+    } else {
+        actor->x += x_delta;
+        actor->y += y_delta;
     }
 }
 
 void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     actor_action_t actor_action;
-    uint32_t dest_x, dest_y;
+    uint32_t dest_tile_x, dest_tile_y;
+    dijkstra_map_t *d_map;
     sys_actors_data_t *sys_actors_data = (sys_actors_data_t *) UNMAYBE(system->data);
     
     list_for_each(&(sys_actors_data->actors), actor_t *, actor) {
         if (NULL != UNMAYBE(actor->ai.get_action)) {
             
-            actor_action = ((ai_func_t) UNMAYBE(actor->ai.get_action))(actor, actor->ai.ai_params, &dest_x, &dest_y);
+            actor_action = ((ai_func_t) UNMAYBE(actor->ai.get_action))(actor, actor->ai.ai_params, &dest_tile_x, &dest_tile_y);
             
             switch(actor_action) {
                 case ACTOR_ACTION_MOVE:
-                    actor_move_towards(actor, dest_x, dest_y);
+                    d_map = map_create_dijkstra(actor->map, dest_tile_x, dest_tile_y);
+                    actor_move_dijkstra(actor, d_map);
+                    dijkstra_map_free(d_map);
                 case ACTOR_ACTION_IDLE:
                     break;
                 default:
@@ -44,6 +89,8 @@ void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params,
                     exit(1);
             }
         }
+        actor->renderable->x = actor->x;
+        actor->renderable->y = actor->y;
     }
 }
 

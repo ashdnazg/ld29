@@ -8,6 +8,7 @@ SYSTEMS = sdl map actors logic
 
 CORE_C_FILES = event.c \
           int_list.c \
+          int_pheap.c \
           mem_wrap.c \
           macros.c \
           system.c \
@@ -20,6 +21,7 @@ CORE_C_FILES = event.c \
           
 CORE_HEADERS = event.h \
                int_list.h \
+               int_pheap.h \
                mem_wrap.h \
                macros.h \
                builtin_events.h \
