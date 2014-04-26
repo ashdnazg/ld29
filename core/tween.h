@@ -106,13 +106,14 @@ typedef struct tween_list_s {
 
 
 void tween_free(tween_t *tween);
-
+void tween_list_init(tween_list_t *tween_list);
+void tween_list_clean(tween_list_t *tween_list);
 tween_list_t * tween_list_new(void);
 void tween_list_free(tween_list_t *tween_list);
 
 void tween_list_tween(tween_list_t *tween_list);
 
-tween_t * tween_manager_add_tween(tween_list_t *tween_list, list_t *parent_tweens_list, void *ptr, tween_type_t type, unsigned int total_steps,
+tween_t * tween_list_add_tween(tween_list_t *tween_list, list_t *parent_tweens_list, void *ptr, tween_type_t type, unsigned int total_steps,
                                                         tween_value_t start, tween_value_t end, tween_dir_t dir, tween_func_t tween_cb);
                                                         
 void linear_tween(tween_t *tween);

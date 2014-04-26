@@ -6,6 +6,8 @@
 #include "entity.h"
 #include "system.h"
 #include "event.h"
+#include "tween.h"
+#include "builtin_events.h"
 #include <stdio.h>
 
 void game_init(game_t *game) {
@@ -15,6 +17,7 @@ void game_init(game_t *game) {
     list_init(&(game->events_queue), event_t, events_link);
     events_map_init(&(game->events_map));
     list_init(&(game->systems), system_t, systems_link);
+    tween_list_init(&(game->tween_list));
 }
 
 void game_clean(game_t *game) {
@@ -25,14 +28,18 @@ void game_clean(game_t *game) {
     }
     events_map_clean(&(game->events_map));
     list_init(&(game->systems), system_t, systems_link);
+    tween_list_clean(&(game->tween_list));
 }
+
+void game_step(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    tween_list_tween(&(game->tween_list));
+}
+
 
 void game_load_systems(game_t *game) {
     game_register_hook(game, NULL, game_toggle_pause, MAYBIFY(NULL), EVENT_TOGGLE_PAUSE, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, NULL, game_step, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
 }
-
-
-
 
 void game_push_event(game_t *game, system_t *system, uint32_t type, MAYBE(void *) sender_params) {
     list_insert_tail(&(game->events_queue), event_new(GET_EVENT_ID(system, type), sender_params));

@@ -24,17 +24,24 @@ void tween_free(tween_t *tween){
     link_remove_from_list(&(tween->tweens_link));
     mem_free(tween);
 }
+void tween_list_init(tween_list_t *tween_list) {
+    list_init(&(tween_list->all_tweens), tween_t, all_tweens_link)
+}
+
+void tween_list_clean(tween_list_t *tween_list) {
+    list_for_each(&(tween_list->all_tweens), tween_t *, tween) {
+        tween_free(tween);
+    }
+}
 
 tween_list_t * tween_list_new(void) {
     tween_list_t * tween_list = mem_alloc(sizeof(tween_list_t));
-    list_init(&(tween_list->all_tweens), tween_t, all_tweens_link)
+    tween_list_init(tween_list);
     return tween_list;
 }
 
 void tween_list_free(tween_list_t *tween_list) {
-    list_for_each(&(tween_list->all_tweens), tween_t *, tween) {
-        tween_free(tween);
-    }
+    tween_list_clean(tween_list);
     mem_free(tween_list);
 }
 

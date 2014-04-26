@@ -12,6 +12,7 @@ typedef struct game_s game_t;
 #include "component.h"
 #include "entity.h"
 #include "system.h"
+#include "tween.h"
 
 typedef void (*event_hook_t)(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params);
 
@@ -27,6 +28,7 @@ struct game_s {
     list_t events_queue;
     components_map_t components_map;
     list_t systems;
+    tween_list_t tween_list;
 };
 
 void game_init(game_t *game);

@@ -13,6 +13,7 @@
 #include "core/builtin_events.h"
 #include "core/game.h"
 #include "core/settings.h"
+#include "core/tween.h"
 
 LOCAL_EVENTS
     sdl_check_input
@@ -165,5 +166,9 @@ bool start(game_t *game, system_t *system) {
     renderable_t *rend = render_manager_create_renderable(&(sys_SDL_data->render_manager), "anim00", 20, 20, -200);
     render_manager_play_animation(&(sys_SDL_data->render_manager), rend, "anim", 60, TRUE);
     sound_manager_play_sample(&(sys_SDL_data->sound_manager), "ambient", 20, FALSE, NULL);
+    tween_value_t start, end;
+    start.dval = 0.0;
+    end.dval = 360.0;
+    tween_list_add_tween(&(game->tween_list),&(rend->tweens), &(rend->angle), TWEEN_TYPE_DOUBLE, 240, start, end, TWEEN_IN, linear_tween);
     return TRUE;
 }
