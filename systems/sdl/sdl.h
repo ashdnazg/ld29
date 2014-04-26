@@ -16,13 +16,15 @@ extern "C" {
 
 #define SYS_SDL_NAME "SDL"
 
-#define GAME_NAME "AESIS"
-#define GAME_WIDTH 640
-#define GAME_HEIGHT 480
+#define GAME_NAME "LD29"
+#define GAME_WIDTH 800
+#define GAME_HEIGHT 600
 #define WINDOW_SCALE 1
-#define STEP_INTERVAL 1000
+#define STEP_INTERVAL 17
 #define SKIP_THRESHOLD 5
 #define MAX_SKIP 5
+
+#define CAMERA_STEP 20
 
 #ifdef _WIN32
 #define ASSETS_DIR "assets\\"
@@ -46,7 +48,7 @@ typedef struct sys_SDL_data_s {
 
 bool sdl_start(game_t *game, system_t *system);
 
-renderable_t * sys_SDL_add_renderable(game_t *game, char *sprite_name, int x, int y, int depth);
+renderable_t * sys_SDL_add_renderable(game_t *game, const char *sprite_name, int x, int y, int depth);
 
 #ifdef __cplusplus
 }

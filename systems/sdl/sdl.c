@@ -17,7 +17,11 @@
 #include "core/tween.h"
 
 LOCAL_EVENTS
-    sdl_check_input
+    sdl_check_input,
+    sdl_move_camera_up,
+    sdl_move_camera_down,
+    sdl_move_camera_left,
+    sdl_move_camera_right
 END_LOCAL_EVENTS
 
 LOCAL_COMPONENTS
@@ -39,15 +43,35 @@ END_LOCAL_COMPONENTS
     // renderable_free(d->rend);
 // }
 
+void move_camera_up(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
+    sys_SDL_data->render_manager.y_offset += CAMERA_STEP;
+}
+
+void move_camera_down(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
+    sys_SDL_data->render_manager.y_offset -= CAMERA_STEP;
+}
+
+void move_camera_left(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
+    sys_SDL_data->render_manager.x_offset += CAMERA_STEP;
+}
+
+void move_camera_right(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(system_params);
+    sys_SDL_data->render_manager.x_offset -= CAMERA_STEP;
+}
+
 void key_pressed(game_t *game, system_t *system, SDL_Scancode scancode, sys_SDL_data_t *sys_SDL_data) {
     if (sys_SDL_data->key_press_events[scancode] != NO_EVENT) {
-        game_push_event(game, system, sys_SDL_data->key_press_events[scancode], MAYBIFY(NULL));
+        game_trigger_event(game, system, sys_SDL_data->key_press_events[scancode], MAYBIFY(NULL));
     }
 }
 
 void key_released(game_t *game, system_t *system, SDL_Keycode scancode, sys_SDL_data_t *sys_SDL_data) {
     if (sys_SDL_data->key_release_events[scancode] != NO_EVENT) {
-        game_push_event(game, system, sys_SDL_data->key_release_events[scancode], MAYBIFY(NULL));
+        game_trigger_event(game, system, sys_SDL_data->key_release_events[scancode], MAYBIFY(NULL));
     }
 }
 
@@ -130,11 +154,31 @@ void sys_SDL_draw(game_t *game, system_t * system, MAYBE(void *) system_params, 
 }
 
 
-renderable_t * sys_SDL_add_renderable(game_t *game, char *sprite_name, int x, int y, int depth) {
+renderable_t * sys_SDL_add_renderable(game_t *game, const char *sprite_name, int x, int y, int depth) {
     system_t *sys_sdl = game_get_system(game, SYS_SDL_NAME);
     sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(sys_sdl->data);
     return render_manager_create_renderable(&(sys_SDL_data->render_manager), sprite_name, x, y, depth);
     
+}
+
+void set_key_press_from_settings(sys_SDL_data_t *sys_SDL_data, const char *key_settings, SDL_Keycode default_key, uint32_t event_id) {
+    MAYBE(char *) key_str = settings_get_string(key_settings);
+    if(UNMAYBE(key_str) == NULL) {
+        sys_SDL_data->key_press_events[SDL_GetScancodeFromKey(default_key)] = event_id;
+    } else {
+        sys_SDL_data->key_press_events[SDL_GetScancodeFromKey(((char*) UNMAYBE(key_str))[0])] = event_id;
+        mem_free(UNMAYBE(key_str));
+    }
+}
+
+void set_key_release_from_settings(sys_SDL_data_t *sys_SDL_data, const char *key_settings, SDL_Keycode default_key, uint32_t event_id) {
+    MAYBE(char *) key_str = settings_get_string(key_settings);
+    if(UNMAYBE(key_str) == NULL) {
+        sys_SDL_data->key_release_events[SDL_GetScancodeFromKey(default_key)] = event_id;
+    } else {
+        sys_SDL_data->key_release_events[SDL_GetScancodeFromKey(((char*) UNMAYBE(key_str))[0])] = event_id;
+        mem_free(UNMAYBE(key_str));
+    }
 }
 
 bool sdl_start(game_t *game, system_t *system) {
@@ -158,10 +202,20 @@ bool sdl_start(game_t *game, system_t *system) {
     system->data_free = MAYBIFY_FUNC(mem_free);
     
     game_export_event(game, system, sdl_check_input, MAYBIFY_FUNC(NULL));
+    game_export_event(game, system, sdl_move_camera_up, MAYBIFY_FUNC(NULL));
+    game_export_event(game, system, sdl_move_camera_down, MAYBIFY_FUNC(NULL));
+    game_export_event(game, system, sdl_move_camera_left, MAYBIFY_FUNC(NULL));
+    game_export_event(game, system, sdl_move_camera_right, MAYBIFY_FUNC(NULL));
+    
     game_register_hook(game, system, sys_SDL_clean, MAYBIFY(sys_SDL_data), EVENT_EXIT, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_SDL_data), EVENT_START, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_SDL_data), sdl_check_input, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, sys_SDL_draw, MAYBIFY(sys_SDL_data), EVENT_NEW_FRAME, MAYBIFY_FUNC(NULL));
+    
+    game_register_hook(game, system, move_camera_up, MAYBIFY(sys_SDL_data), sdl_move_camera_up, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, move_camera_down, MAYBIFY(sys_SDL_data), sdl_move_camera_down, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, move_camera_left, MAYBIFY(sys_SDL_data), sdl_move_camera_left, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, move_camera_right, MAYBIFY(sys_SDL_data), sdl_move_camera_right, MAYBIFY_FUNC(NULL));
     
     sys_SDL_data->win = SDL_CreateWindow(GAME_NAME, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAME_WIDTH * WINDOW_SCALE, GAME_HEIGHT * WINDOW_SCALE, SDL_WINDOW_SHOWN);
     if (sys_SDL_data->win == NULL) {
@@ -174,13 +228,11 @@ bool sdl_start(game_t *game, system_t *system) {
     SDL_RenderSetLogicalSize(sys_SDL_data->ren, GAME_WIDTH, GAME_HEIGHT);
     render_manager_init(&(sys_SDL_data->render_manager), sys_SDL_data->ren);
 
-    MAYBE(char *) pause_key_str = settings_get_string("pause_key");
-    if(UNMAYBE(pause_key_str) == NULL) {
-        sys_SDL_data->key_press_events[SDL_GetScancodeFromKey('p')] = EVENT_TOGGLE_PAUSE;
-    } else {
-        sys_SDL_data->key_press_events[SDL_GetScancodeFromKey(((char*) UNMAYBE(pause_key_str))[0])] = EVENT_TOGGLE_PAUSE;
-        mem_free(UNMAYBE(pause_key_str));
-    }
+    set_key_press_from_settings(sys_SDL_data, "pause_key",          SDLK_p,     EVENT_TOGGLE_PAUSE);
+    set_key_press_from_settings(sys_SDL_data, "camera_up_key",      SDLK_UP,    sdl_move_camera_up);
+    set_key_press_from_settings(sys_SDL_data, "camera_down_key",    SDLK_DOWN,  sdl_move_camera_down);
+    set_key_press_from_settings(sys_SDL_data, "camera_left_key",    SDLK_LEFT,  sdl_move_camera_left);
+    set_key_press_from_settings(sys_SDL_data, "camera_right_key",   SDLK_RIGHT, sdl_move_camera_right);
 
     return TRUE;
 }

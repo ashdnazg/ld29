@@ -8,6 +8,32 @@
 #include <SDL2/sdl.h>
 #include <stdint.h>
 
+bool tile_passable(tile_type_t type) {
+    switch(type) {
+        case TILE_NOTHING       :
+        case TILE_WEAPONS       :
+        case TILE_SONAR         :
+        case TILE_CONTROL       :
+        case TILE_CREW_QUARTERS :
+        case TILE_CPT_QUARTERS  :
+        case TILE_HOLD          :
+        case TILE_ENGINES       :
+        case TILE_PASSAGE       :
+            return TRUE;
+        case TILE_INTERIOR      :
+        case TILE_OUTER_HULL    :
+        case TILE_PRESSURE_HULL :
+            return FALSE;
+        default:
+            printf("wrong tile type: %d\n", type);
+            exit(1);
+            break;
+    }
+}
+
+bool map_tile_passable(map_t *map, int x, int y) {
+    return tile_passable(map->matrix[COORD(map,x,y)]);
+}
 
 void map_clean(map_t *map) {
     mem_free(map->matrix);
@@ -46,11 +72,12 @@ void map_init(map_t *map, const char *name) {
                 case TILE_PRESSURE_HULL :
                 case TILE_OUTER_HULL    :
                 case TILE_PASSAGE       :
-                    map->matrix[i*im_w + j] = tile_id;
+                case TILE_INTERIOR      :
+                    map->matrix[COORD(map, j, i)] = tile_id;
                     break;
                 default:
                     printf("wrong colour: %x, %d, %d\n", tile_id, i, j);
-                    map->matrix[i*im_w + j] = TILE_NOTHING;
+                    map->matrix[COORD(map, j, i)] = TILE_NOTHING;
                     break;
             }
             
@@ -67,40 +94,57 @@ map_t * map_new(const char *name) {
 
 void map_init_graphics(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     map_t *map = (map_t *) UNMAYBE(system_params);
-    
+    const char *tile_name = NULL;
     int i, j;
     for (i = 0; i < map->height; ++i) {
         for (j = 0; j < map->width; ++j) {
             switch(map->matrix[i * map->width + j]) {
                 case TILE_WEAPONS       :
+                    tile_name = "tile_weapons";
+                    break;
                 case TILE_SONAR         :
+                    tile_name = "tile_sonar";
+                    break;
                 case TILE_CONTROL       :
+                    tile_name = "tile_control";
+                    break;
                 case TILE_CREW_QUARTERS :
+                    tile_name = "tile_crew_quarters";
+                    break;
                 case TILE_CPT_QUARTERS  :
+                    tile_name = "tile_cpt_quarters";
+                    break;
                 case TILE_HOLD          :
+                    tile_name = "tile_hold";
+                    break;
                 case TILE_ENGINES       :
+                    tile_name = "tile_engines";
+                    break;
                 case TILE_PRESSURE_HULL :
-                    map->renderables[i * map->width + j] = MAYBIFY(sys_SDL_add_renderable(game, "tile_pressure_hull", j * TILE_SIZE, i * TILE_SIZE, MAP_DEPTH));
-                    printf("k");
+                    tile_name = "tile_pressure_hull";
                     break;
                 case TILE_OUTER_HULL    :
-                    map->renderables[i * map->width + j] = MAYBIFY(sys_SDL_add_renderable(game, "tile_outer_hull", j * TILE_SIZE, i  * TILE_SIZE , MAP_DEPTH));
-                    printf("b");
+                    tile_name = "tile_outer_hull";
                     break;
                 case TILE_PASSAGE       :
-                    map->renderables[i * map->width + j] = MAYBIFY(sys_SDL_add_renderable(game, "tile_passage", j * TILE_SIZE, i * TILE_SIZE, MAP_DEPTH));
-                    printf("g");
+                    tile_name = "tile_passage";
+                    break;
+                case TILE_INTERIOR       :
+                    tile_name = "tile_interior";
                     break;
                 case TILE_NOTHING       :
-                    map->renderables[i * map->width + j] = MAYBIFY(NULL);
-                    printf("w");
+                    tile_name = NULL;
                     break;
                 default:
-                    printf("wrong colour: %x, %d, %d\n", map->matrix[i * map->width + j], i, j);
+                    printf("wrong colour: %x, %d, %d\n", map->matrix[COORD(map, j, i)], i, j);
                     exit(1);
             }
+            if (tile_name != NULL) {
+                map->renderables[COORD(map, j, i)] = MAYBIFY(sys_SDL_add_renderable(game, tile_name, j * TILE_SIZE, i * TILE_SIZE, MAP_DEPTH));
+            } else {
+                map->renderables[COORD(map, j, i)] = MAYBIFY(NULL);
+            }
         }
-        printf("\n");
     }
 }
 

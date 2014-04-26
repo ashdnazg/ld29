@@ -24,6 +24,8 @@ extern "C" {
 #define MAP_DEPTH 0
 #define TILE_SIZE 10
 
+#define COORD(map, x, y) ((y) * map->width + (x))
+
 typedef enum tile_type_e {
     TILE_NOTHING       = 0x00FFFFFF,
     TILE_WEAPONS       = 0x000000FF,
@@ -33,9 +35,10 @@ typedef enum tile_type_e {
     TILE_CPT_QUARTERS  = 0x00007F00,
     TILE_HOLD          = 0x00FFFF00,
     TILE_ENGINES       = 0x0000FFFF,
-    TILE_PRESSURE_HULL = 0x00000000,
+    TILE_PRESSURE_HULL = 0x007F7F00,
     TILE_OUTER_HULL    = 0x00FF0000,
-    TILE_PASSAGE       = 0x007F7F7F
+    TILE_PASSAGE       = 0x007F7F7F,
+    TILE_INTERIOR      = 0x00000000,
 } tile_type_t;
 
 typedef struct map_s {
