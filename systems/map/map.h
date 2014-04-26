@@ -33,6 +33,7 @@ extern "C" {
 
 #define DIJKSTRA_IMPASSABLE UINT32_MAX
 
+
 typedef struct tile_coord_s {
     heap_link_t coords_link;
     uint32_t x;
@@ -60,6 +61,7 @@ typedef enum tile_type_e {
     TILE_CLOSED_PASSAGE = 0x0000007F,
     TILE_INTERNAL_WALL  = 0x007F7F7F,
     TILE_INTERIOR       = 0x00000000,
+    TILE_ANYWHERE      = 0x0EEEEEEE,
 } tile_type_t;
 
 typedef struct map_s {
@@ -68,6 +70,8 @@ typedef struct map_s {
     tile_type_t *matrix;
     MAYBE(renderable_t *) *renderables;
 } map_t;
+
+void map_get_random_tile(map_t *map, tile_type_t type, uint32_t *out_x, uint32_t *out_y);
 
 bool map_reachable(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t destination_x, uint32_t destination_y);
 

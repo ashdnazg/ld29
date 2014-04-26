@@ -41,6 +41,7 @@ typedef actor_action_t (*ai_func_t)(actor_t *actor, MAYBE(void *) ai_params, uin
 typedef struct actor_ai_s {
     MAYBE_FUNC(ai_func_t) get_action;
     MAYBE(void *) ai_params;
+    MAYBE_FUNC(free_callback_t) ai_params_free;
 } actor_ai_t;
 
 

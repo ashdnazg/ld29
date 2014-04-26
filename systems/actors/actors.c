@@ -119,6 +119,7 @@ void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params,
                     actor_move_dijkstra(actor, d_map);
                     dijkstra_map_free(d_map);
                     break;
+                case ACTOR_ACTION_WORK:
                 case ACTOR_ACTION_IDLE:
                     actor->speed = 0;
                     break;
@@ -138,6 +139,9 @@ void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params,
 void actor_free(actor_t *actor) {
     link_remove_from_list(&(actor->actors_link));
     //renderable_free(actor->renderable);
+    if (NULL != UNMAYBE(actor->ai.ai_params_free) && NULL != UNMAYBE(actor->ai.ai_params)) {
+        ((free_callback_t) UNMAYBE(actor->ai.ai_params_free))(UNMAYBE(actor->ai.ai_params));
+    }
     mem_free(actor);
 }
 
@@ -151,6 +155,7 @@ actor_t * sys_actors_add_actor(game_t *game, map_t *map, actor_type_t type, int3
     actor->type = type;
     actor->ai.get_action = MAYBIFY_FUNC(NULL);
     actor->ai.ai_params = MAYBIFY(NULL);
+    actor->ai.ai_params_free = MAYBIFY_FUNC(NULL);
     actor->x = x;
     actor->y = y;
     actor->fine_x = FINE_FACTOR * x;

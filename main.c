@@ -11,8 +11,10 @@
 #include "SDL2/SDL.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
 int main(int argc, char* argv[]) {
+    srand(time(NULL));
     game_t game;
     game_init(&game);
     if(game_add_system(&game, sdl_start)) {

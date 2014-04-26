@@ -49,6 +49,7 @@ bool map_tile_passable(map_t *map, int x, int y) {
 }
 
 
+
 tile_coord_t * tile_coord_new(uint32_t origin_x, uint32_t origin_y) {
     tile_coord_t *tc = mem_alloc(sizeof(*tc));
     heap_link_init(tc, coords_link);
@@ -56,9 +57,30 @@ tile_coord_t * tile_coord_new(uint32_t origin_x, uint32_t origin_y) {
     tc->y = origin_y;
     return tc;
 }
+
 void dijkstra_map_free(dijkstra_map_t *d_map) {
     mem_free(d_map->matrix);
     mem_free(d_map);
+}
+
+void map_get_random_tile(map_t *map, tile_type_t type, uint32_t *out_x, uint32_t *out_y) {
+    int count = 0;
+    int i, j, choice;
+    tile_coord_t *optional_tiles = mem_alloc(sizeof(*optional_tiles) * map->height * map->width);
+    
+    for (i = 0; i < map->height; i++) {
+        for (j = 0; j < map->width; j++) {
+            if (map->matrix[COORD(map, j, i)] == type || (type == TILE_ANYWHERE && map_tile_passable(map,j,i))) {
+                optional_tiles[count].x = j;
+                optional_tiles[count].y = i;
+                count += 1;
+            }
+        }
+    }
+    choice = rand() % count;
+    *out_x = optional_tiles[choice].x;
+    *out_y = optional_tiles[choice].y;
+    mem_free(optional_tiles);
 }
 
 dijkstra_map_t * map_create_dijkstra(map_t *map, uint32_t origin_x, uint32_t origin_y) {
