@@ -17,9 +17,9 @@ extern "C" {
 #define SYS_SDL_NAME "SDL"
 
 #define GAME_NAME "LD29"
-#define GAME_WIDTH 400
-#define GAME_HEIGHT 300
-#define WINDOW_SCALE 2
+#define GAME_WIDTH 800
+#define GAME_HEIGHT 600
+#define WINDOW_SCALE 1
 #define STEP_INTERVAL 17
 #define SKIP_THRESHOLD 5
 #define MAX_SKIP 5

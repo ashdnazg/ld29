@@ -16,7 +16,6 @@
 
 bool tile_passable(tile_type_t type) {
     switch(type) {
-        case TILE_NOTHING       :
         case TILE_WEAPONS       :
         case TILE_SONAR         :
         case TILE_CONTROL       :
@@ -24,9 +23,12 @@ bool tile_passable(tile_type_t type) {
         case TILE_CPT_QUARTERS  :
         case TILE_HOLD          :
         case TILE_ENGINES       :
-        case TILE_PASSAGE       :
+        case TILE_OPEN_PASSAGE  :
             return TRUE;
+        case TILE_NOTHING       :
         case TILE_INTERIOR      :
+        case TILE_INTERNAL_WALL :
+        case TILE_CLOSED_PASSAGE:
         case TILE_OUTER_HULL    :
         case TILE_PRESSURE_HULL :
             return FALSE;
@@ -36,6 +38,7 @@ bool tile_passable(tile_type_t type) {
             break;
     }
 }
+
 
 bool map_in_map(map_t *map, int x, int y) {
         return (x >= 0 && y >= 0 && x <= map->width && y <= map->height);
@@ -99,6 +102,14 @@ dijkstra_map_t * map_create_dijkstra(map_t *map, uint32_t origin_x, uint32_t ori
         mem_free(current_tile); 
     }
     return d_map;
+}
+
+
+bool map_reachable(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t destination_x, uint32_t destination_y) {
+    dijkstra_map_t *d_map = map_create_dijkstra(map, origin_x, origin_y);
+    bool result = d_map->matrix[COORD(d_map, destination_x, destination_y)] != DIJKSTRA_IMPASSABLE;
+    dijkstra_map_free(d_map);
+    return result;
 }
 
 map_t *map_get_main_map(game_t *game) {
@@ -189,18 +200,20 @@ void map_init(map_t *map, const char *name) {
         for (j = 0; j < im_w; ++j) {
             tile_id = *((uint32_t *) &(image[i * im_w * 4 + j * 4])) & TILE_TYPE_MASK;
             switch(tile_id) {
-                case TILE_NOTHING       :
-                case TILE_WEAPONS       :
-                case TILE_SONAR         :
-                case TILE_CONTROL       :
-                case TILE_CREW_QUARTERS :
-                case TILE_CPT_QUARTERS  :
-                case TILE_HOLD          :
-                case TILE_ENGINES       :
-                case TILE_PRESSURE_HULL :
-                case TILE_OUTER_HULL    :
-                case TILE_PASSAGE       :
-                case TILE_INTERIOR      :
+                case TILE_NOTHING        :
+                case TILE_WEAPONS        :
+                case TILE_SONAR          :
+                case TILE_CONTROL        :
+                case TILE_CREW_QUARTERS  :
+                case TILE_CPT_QUARTERS   :
+                case TILE_HOLD           :
+                case TILE_ENGINES        :
+                case TILE_PRESSURE_HULL  :
+                case TILE_OUTER_HULL     :
+                case TILE_OPEN_PASSAGE   :
+                case TILE_CLOSED_PASSAGE :
+                case TILE_INTERNAL_WALL  :
+                case TILE_INTERIOR       :
                     map->matrix[COORD(map, j, i)] = tile_id;
                     break;
                 default:
@@ -254,13 +267,19 @@ void map_init_graphics(game_t *game, system_t * system, MAYBE(void *) system_par
                 case TILE_OUTER_HULL    :
                     tile_name = "tile_outer_hull";
                     break;
-                case TILE_PASSAGE       :
-                    tile_name = "tile_passage";
+                case TILE_OPEN_PASSAGE  :
+                    tile_name = "tile_open_passage";
+                    break;
+                case TILE_CLOSED_PASSAGE :
+                    tile_name = "tile_closed_passage";
                     break;
                 case TILE_INTERIOR       :
                     tile_name = "tile_interior";
                     break;
-                case TILE_NOTHING       :
+                case TILE_INTERNAL_WALL  :
+                    tile_name = "tile_internal_wall";
+                    break;
+                case TILE_NOTHING        :
                     tile_name = NULL;
                     break;
                 default:

@@ -14,7 +14,16 @@ extern "C" {
 #include <stdint.h>
 
 #define SYS_LOGIC_NAME "logic"
-#define DESTINATION_NOT_SET -1
+#define DESTINATION_NOT_SET UINT32_MAX
+
+typedef enum task_e {
+    TASK_NO_TASK,
+    TASK_OPEN_PASSAGE,
+    TASK_SUPERVISE_ENGINE,
+    TASK_FIRE_TORPEDO,
+    TASK_CLOSE_PASSAGE,
+    TASK_PANIC    
+} task_t;
 
 typedef enum direction_e {
     DIR_N,
@@ -26,6 +35,12 @@ typedef enum direction_e {
     DIR_W,
     DIR_NW
 } direction_t;
+
+typedef struct soldier_ai_params_s {
+    task_t task;
+    uint32_t destination_x;
+    uint32_t destination_y;
+} soldier_ai_params_t;
 
 typedef struct game_state_s {
     uint32_t controller_x;

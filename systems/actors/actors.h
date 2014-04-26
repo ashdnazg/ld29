@@ -15,12 +15,16 @@ extern "C" {
 #include "systems/sdl/sdl_video.h"
 #include "systems/map/map.h"
 
+#define ACTOR_MAX_SPEED 9
 #define ACTOR_DEPTH 10
 #define ACTOR_SIZE 5
 #define SYS_ACTORS_NAME "actors"
 
+#define FINE_FACTOR 3
+
 typedef enum actor_action_e {
     ACTOR_ACTION_IDLE,
+    ACTOR_ACTION_WORK,
     ACTOR_ACTION_MOVE
 } actor_action_t;
 
@@ -48,7 +52,10 @@ struct actor_s {
     actor_ai_t ai;
     renderable_t *renderable;
     int32_t x;
+    int32_t fine_x;
     int32_t y;
+    int32_t fine_y;
+    uint32_t speed;
 };
 
 typedef struct sys_actors_data_s {

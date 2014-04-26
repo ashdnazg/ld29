@@ -10,20 +10,36 @@
 
 #include <stdint.h>
 
+void actor_move(actor_t *actor, int x_delta, int y_delta) {
+    if (x_delta * y_delta != 0) {
+        actor->fine_x += x_delta * MIN(actor->speed / 3, 2);
+        actor->fine_y += y_delta * MIN(actor->speed / 3, 2);
+    } else {
+        actor->fine_x += x_delta * MIN(actor->speed / 3, 3);
+        actor->fine_y += y_delta * MIN(actor->speed / 3, 3);
+    }
+    actor->x = actor->fine_x / FINE_FACTOR;
+    actor->y = actor->fine_y / FINE_FACTOR;
+}
+
 void actor_move_towards(actor_t *actor, int32_t dest_x, int32_t dest_y) {
     int x_delta = 0, y_delta = 0;
+    if (actor->speed > 4) {
+        actor->speed -= 3;
+    }
     if (dest_x != actor->x) {
         x_delta = ABS(dest_x - actor->x) / (dest_x - actor->x);
-        if (map_rect_passable(actor->map, actor->x + x_delta, actor->y, ACTOR_SIZE, ACTOR_SIZE)) {
-            actor->x += x_delta;
+        if (!map_rect_passable(actor->map, actor->x + x_delta, actor->y, ACTOR_SIZE, ACTOR_SIZE)) {
+            x_delta = 0;
         }
     }
     if (dest_y != actor->y) {
         y_delta = ABS(dest_y - actor->y) / (dest_y - actor->y);
-        if (map_rect_passable(actor->map, actor->x, actor->y + y_delta, ACTOR_SIZE, ACTOR_SIZE)) {
-            actor->y += y_delta;
+        if (!map_rect_passable(actor->map, actor->x, actor->y + y_delta, ACTOR_SIZE, ACTOR_SIZE)) {
+            y_delta = 0;
         }
     }
+    actor_move(actor, x_delta, y_delta);
 }
 
 void actor_move_dijkstra(actor_t * actor, dijkstra_map_t *d_map) {
@@ -51,6 +67,7 @@ void actor_move_dijkstra(actor_t * actor, dijkstra_map_t *d_map) {
     }
     dest_tile_x = actor_tile_x + x_delta;
     dest_tile_y = actor_tile_y + y_delta;
+    
     if (!map_rect_passable(actor->map, actor->x + x_delta, actor->y, ACTOR_SIZE, ACTOR_SIZE)) {
         x_delta = 0;
     }
@@ -61,9 +78,25 @@ void actor_move_dijkstra(actor_t * actor, dijkstra_map_t *d_map) {
         map_tile_center(actor->map, dest_tile_x, dest_tile_y, &dest_x, &dest_y);
         actor_move_towards(actor, dest_x - ACTOR_SIZE / 2, dest_y - ACTOR_SIZE / 2);
     } else {
-        actor->x += x_delta;
-        actor->y += y_delta;
+        actor_move(actor, x_delta, y_delta);
+        // actor->x += x_delta;
+        // actor->y += y_delta;
     }
+    
+    // if (x_delta == 0 && y_delta == 0) {
+        // map_tile_center(actor->map, dest_tile_x, dest_tile_y, &dest_x, &dest_y);
+        // actor_move_towards(actor, dest_x - ACTOR_SIZE / 2, dest_y - ACTOR_SIZE / 2);
+    // } else {
+        // printf("%d\n", actor->speed);
+        // if (x_delta * y_delta != 0) {
+            // distance = MIN(2, actor->speed);
+        // } else {
+            // distance = MIN(2, actor->speed);
+        // }
+        // for (i = 0; i < distance; i++) {
+
+        // }
+    // }
 }
 
 void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
@@ -79,16 +112,23 @@ void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params,
             
             switch(actor_action) {
                 case ACTOR_ACTION_MOVE:
+                    if (actor->speed < ACTOR_MAX_SPEED) {
+                        ++(actor->speed);
+                    }
                     d_map = map_create_dijkstra(actor->map, dest_tile_x, dest_tile_y);
                     actor_move_dijkstra(actor, d_map);
                     dijkstra_map_free(d_map);
+                    break;
                 case ACTOR_ACTION_IDLE:
+                    actor->speed = 0;
                     break;
                 default:
                     printf("bad actor_action: %d\n", actor_action);
                     exit(1);
             }
         }
+        actor->x = actor->fine_x / FINE_FACTOR;
+        actor->y = actor->fine_y / FINE_FACTOR;
         actor->renderable->x = actor->x;
         actor->renderable->y = actor->y;
     }
@@ -113,6 +153,9 @@ actor_t * sys_actors_add_actor(game_t *game, map_t *map, actor_type_t type, int3
     actor->ai.ai_params = MAYBIFY(NULL);
     actor->x = x;
     actor->y = y;
+    actor->fine_x = FINE_FACTOR * x;
+    actor->fine_y = FINE_FACTOR * y;
+    actor->speed = 0;
     
     switch (type) {
         case ACTOR_CAPTAIN:

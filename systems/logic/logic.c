@@ -28,9 +28,14 @@ void update_controller(game_t *game, system_t * system, MAYBE(void *) system_par
 
 actor_action_t get_controller_action(actor_t *actor, MAYBE(void *) ai_params, uint32_t *out_x, uint32_t *out_y) {
     int32_t dest_center_x, dest_center_y;
+    uint32_t actor_tile_x, actor_tile_y;
     game_state_t * game_state = UNMAYBE(ai_params);
+    map_translate_coordinates(game_state->current_map, actor->x, actor->y, &actor_tile_x, &actor_tile_y);
     map_tile_center(game_state->current_map, game_state->controller_x, game_state->controller_y, &dest_center_x, &dest_center_y);
-    if (actor->x == dest_center_x - ACTOR_SIZE / 2 && actor->y == dest_center_y - ACTOR_SIZE / 2) {
+    if ((ABS(actor->x - dest_center_x + ACTOR_SIZE / 2) < 2 && ABS(actor->y - dest_center_y + ACTOR_SIZE / 2) < 2) || 
+        (game_state->controller_x != DESTINATION_NOT_SET && game_state->controller_y != DESTINATION_NOT_SET &&
+         !map_reachable(actor->map, game_state->controller_x, game_state->controller_y, actor_tile_x, actor_tile_y))) {
+        printf("stopped\n");
         game_state->controller_x = DESTINATION_NOT_SET;
         game_state->controller_y = DESTINATION_NOT_SET;
         return ACTOR_ACTION_IDLE;
