@@ -6,6 +6,8 @@
 #include "core/game.h"
 #include "systems/sdl/sdl.h"
 #include "systems/map/map.h"
+#include "systems/actors/actors.h"
+#include "systems/logic/logic.h"
 #include "SDL2/SDL.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -18,6 +20,12 @@ int main(int argc, char* argv[]) {
     }
     if(game_add_system(&game, map_start)) {
         printf("loaded map\n");
+    }
+    if(game_add_system(&game, actors_start)) {
+        printf("loaded actors\n");
+    }
+    if(game_add_system(&game, logic_start)) {
+        printf("loaded logic\n");
     }
     game_load_systems(&game);
     

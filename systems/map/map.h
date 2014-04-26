@@ -10,6 +10,8 @@ extern "C" {
 
 #include <SDL2/SDL.h>
 #include <stdint.h>
+
+
 #include "systems/sdl/sdl_video.h"
 
 #define SPRITE_EXTENSION ".png"
@@ -25,6 +27,8 @@ extern "C" {
 #define TILE_SIZE 10
 
 #define COORD(map, x, y) ((y) * map->width + (x))
+
+#define SYS_MAP_NAME "map"
 
 typedef enum tile_type_e {
     TILE_NOTHING       = 0x00FFFFFF,
@@ -47,6 +51,10 @@ typedef struct map_s {
     tile_type_t *matrix;
     MAYBE(renderable_t *) *renderables;
 } map_t;
+
+map_t *map_get_main_map(game_t *game);
+
+bool map_translate_coordinates(map_t *map, int x, int y, uint32_t *out_map_x, uint32_t *out_map_y);
 
 bool map_start(game_t *game, system_t *system);
 

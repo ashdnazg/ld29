@@ -17,9 +17,9 @@ extern "C" {
 #define SYS_SDL_NAME "SDL"
 
 #define GAME_NAME "LD29"
-#define GAME_WIDTH 800
-#define GAME_HEIGHT 600
-#define WINDOW_SCALE 1
+#define GAME_WIDTH 400
+#define GAME_HEIGHT 300
+#define WINDOW_SCALE 2
 #define STEP_INTERVAL 17
 #define SKIP_THRESHOLD 5
 #define MAX_SKIP 5
@@ -32,7 +32,12 @@ extern "C" {
 #define ASSETS_DIR "assets/"
 #endif
 
-typedef struct sys_SDL_data_s {
+typedef struct sys_sdl_mouse_down_data_s {
+    int32_t x;
+    int32_t y;
+} sys_sdl_mouse_down_data_t;
+
+typedef struct sys_sdl_data_s {
     SDL_Window *win;
     SDL_Renderer *ren;
     uint32_t next_frame_time;
@@ -44,7 +49,7 @@ typedef struct sys_SDL_data_s {
     uint32_t key_release_events[SDL_NUM_SCANCODES];
     render_manager_t render_manager;
     sound_manager_t sound_manager;
-} sys_SDL_data_t;
+} sys_sdl_data_t;
 
 bool sdl_start(game_t *game, system_t *system);
 

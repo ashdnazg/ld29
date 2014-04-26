@@ -37,7 +37,7 @@ void mem_wrap_print_mallocs(void) {
 }
 
 char * mem_strdup(const char *s) {
-    size_t len = strlen(s);
+    size_t len = strlen(s) + 1;
     char *t = mem_alloc(len);
     memcpy(t, s, len);
     return t;

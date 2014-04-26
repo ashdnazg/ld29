@@ -1,5 +1,8 @@
 #include "core/macros.h"
 #include "core/mem_wrap.h"
+#include "core/system.h"
+#include "core/game.h"
+
 #include "map.h"
 #include "stb_image.h"
 #include "systems/sdl/sdl.h"
@@ -7,6 +10,15 @@
 
 #include <SDL2/sdl.h>
 #include <stdint.h>
+#include <assert.h>
+
+
+map_t *map_get_main_map(game_t *game) {
+    system_t *sys_map = game_get_system(game, SYS_MAP_NAME);
+    map_t *main_map = (map_t *) UNMAYBE(sys_map->data);
+    assert(NULL != main_map);
+    return main_map;
+}
 
 bool tile_passable(tile_type_t type) {
     switch(type) {
@@ -36,8 +48,25 @@ bool map_tile_passable(map_t *map, int x, int y) {
 }
 
 void map_clean(map_t *map) {
+    //int i,j;
     mem_free(map->matrix);
+    // for (i = 0; i < map->height; ++i) {
+        // for (j = 0; j < map->width; ++j) {
+            // if (NULL != UNMAYBE(map->renderables[COORD(map, j, i)])) {
+                // renderable_free((renderable_t *) UNMAYBE(map->renderables[COORD(map, j, i)]));
+            // }
+        // }
+    // }
     mem_free(map->renderables);
+}
+
+bool map_translate_coordinates(map_t *map, int x, int y, uint32_t *out_map_x, uint32_t *out_map_y) {
+    if(x < 0 || y < 0 || x > map->width * TILE_SIZE || y > map->height * TILE_SIZE) {
+        return FALSE;
+    }
+    *out_map_x = x / TILE_SIZE;
+    *out_map_y = y / TILE_SIZE;
+    return TRUE;
 }
 
 void map_free(map_t *map) {
@@ -149,9 +178,7 @@ void map_init_graphics(game_t *game, system_t * system, MAYBE(void *) system_par
 }
 
 bool map_start(game_t *game, system_t *system) {
-    system->name ="map";
-    // game_import_component(game, system, sdl_renderable);
-    // game_import_event(game, system, sdl_add_renderable);
+    system->name = SYS_MAP_NAME;
     map_t *main_map = map_new("submarine_plan");
     system->data = MAYBIFY(main_map);
     system->data_free = MAYBIFY_FUNC(map_free);

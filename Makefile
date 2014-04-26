@@ -1,6 +1,5 @@
 .PHONY: tests core systems external main
 ROOT_PATH = .
-SYSTEMS = sdl map
 LIBS = $(join  $(SYSTEMS:%=systems/%/), $(SYSTEMS:%=%.a))
 include Makefile.common
 
