@@ -6,11 +6,12 @@
 extern "C" {
 #endif /* __cplusplus */
 
+#include "macros.h"
 #include "int_list.h"
 #include <stdlib.h>
 #include <stdint.h>
 
-#define NOT_INITIALIZED "Not Initialized"
+#define NOT_INITIALIZED ""
 #define UNDEFINED_ID -1
 
 typedef struct system_s system_t;
@@ -19,9 +20,10 @@ typedef struct system_s system_t;
 
 struct system_s {
     const char *name;
-    link_t systems_link;
     uint32_t *local_events_map;
     uint32_t *local_components_map;
+    MAYBE(void *) data;
+    MAYBE_FUNC(free_callback_t) data_free;
 };
 
 

@@ -8,7 +8,9 @@
 #include "event.h"
 #include "tween.h"
 #include "builtin_events.h"
+
 #include <stdio.h>
+#include <assert.h>
 
 void game_init(game_t *game) {
     game->paused = TRUE;
@@ -16,7 +18,7 @@ void game_init(game_t *game) {
     components_map_init(&(game->components_map));
     list_init(&(game->events_queue), event_t, events_link);
     events_map_init(&(game->events_map));
-    list_init(&(game->systems), system_t, systems_link);
+    asset_cache_init(&(game->systems), MAYBIFY_FUNC(system_free));
     tween_list_init(&(game->tween_list));
 }
 
@@ -27,7 +29,7 @@ void game_clean(game_t *game) {
         event_free(&(game->events_map), event);
     }
     events_map_clean(&(game->events_map));
-    list_init(&(game->systems), system_t, systems_link);
+    asset_cache_clean(&(game->systems));
     tween_list_clean(&(game->tween_list));
 }
 
@@ -35,10 +37,32 @@ void game_step(game_t *game, system_t * system, MAYBE(void *) system_params, MAY
     tween_list_tween(&(game->tween_list));
 }
 
+system_t * game_get_system(game_t *game, const char *name) {
+    MAYBE(system_t *) maybe_sys = asset_cache_get(&(game->systems), name);
+    if (UNMAYBE(maybe_sys) != NULL) {
+        return (system_t *) UNMAYBE(maybe_sys);
+    }
+    printf("couldn't find system: %s\n", name);
+    exit(1);
+}
+
+bool game_add_system(game_t *game, system_start_t system_start) {
+    system_t *sys = system_new();
+    if (!system_start(game, sys)) {
+        return FALSE;
+    }
+    assert(sys->name[0] != 0);
+    asset_cache_add(&(game->systems), sys, sys->name);
+    return TRUE;
+}
 
 void game_load_systems(game_t *game) {
     game_register_hook(game, NULL, game_toggle_pause, MAYBIFY(NULL), EVENT_TOGGLE_PAUSE, MAYBIFY_FUNC(NULL));
     game_register_hook(game, NULL, game_step, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
+}
+
+void game_trigger_event(game_t *game, system_t *system, uint32_t type, MAYBE(void *) sender_params) {
+    list_insert_head(&(game->events_queue), event_new(GET_EVENT_ID(system, type), sender_params));
 }
 
 void game_push_event(game_t *game, system_t *system, uint32_t type, MAYBE(void *) sender_params) {
@@ -68,7 +92,7 @@ component_t * entity_add_component(game_t *game, system_t *system, entity_t *ent
     return component;
 }
 
-entity_t * entity_create(game_t *game, char *name) {
+entity_t * entity_create(game_t *game, const char *name) {
     entity_t *entity = entity_new(name, game->entities_list.count);
     list_insert_tail(&(game->entities_list.entities), entity);
     game->entities_list.count += 1;
@@ -83,11 +107,11 @@ void game_register_hook(game_t *game, system_t *system, event_hook_t hook, MAYBE
 void game_toggle_pause(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     if (game->paused) {
         game->paused = FALSE;
-        game_push_event(game, NULL, EVENT_UNPAUSE, MAYBIFY(NULL));
+        game_trigger_event(game, NULL, EVENT_UNPAUSE, MAYBIFY(NULL));
         printf("unpaused\n");
     } else {
         game->paused = TRUE;
-        game_push_event(game, NULL, EVENT_PAUSE, MAYBIFY(NULL));
+        game_trigger_event(game, NULL, EVENT_PAUSE, MAYBIFY(NULL));
         printf("paused\n");
     }
 }

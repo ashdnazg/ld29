@@ -25,6 +25,7 @@ extern "C" {
 typedef struct sprite_s {
     SDL_Texture *texture;
     SDL_Rect *rect;
+    const char *name;
 } sprite_t;
 
 

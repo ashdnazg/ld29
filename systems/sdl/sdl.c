@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <SDL2/SDL.h>
+#include <assert.h>
 
 #include "core/system.h"
 #include "core/event.h"
@@ -20,14 +21,23 @@ LOCAL_EVENTS
 END_LOCAL_EVENTS
 
 LOCAL_COMPONENTS
-    renderable
+    sdl_renderable
 END_LOCAL_COMPONENTS
 
-COMPONENT_DATA(renderable) {
-    renderable_t renderable;
-};
+// COMPONENT_DATA(sdl_renderable) {
+    // renderable_t *rend;
+// };
 
+// void INIT_DATA(sdl_renderable) (void *data) {
+    // COMPONENT_DATA(sdl_renderable) *d = (COMPONENT_DATA(sdl_renderable) *) data;
+    // d->rend = NULL;
+// }
 
+// void CLEAN_DATA(sdl_renderable) (void *data) {
+    // COMPONENT_DATA(sdl_renderable) *d = (COMPONENT_DATA(sdl_renderable) *) data;
+    // assert(d->rend != NULL);
+    // renderable_free(d->rend);
+// }
 
 void key_pressed(game_t *game, system_t *system, SDL_Scancode scancode, sys_SDL_data_t *sys_SDL_data) {
     if (sys_SDL_data->key_press_events[scancode] != NO_EVENT) {
@@ -82,10 +92,10 @@ void check_input(game_t *game, system_t * system, MAYBE(void *) system_params, M
         } else {
             sys_SDL_data->frames_skipped = 0;
             if (!(game->paused)) {
-                game_push_event(game, system, EVENT_NEW_STEP, MAYBIFY(NULL));
+                game_trigger_event(game, system, EVENT_NEW_STEP, MAYBIFY(NULL));
             }
             if (draw) {
-                game_push_event(game, system, EVENT_NEW_FRAME, MAYBIFY(NULL));
+                game_trigger_event(game, system, EVENT_NEW_FRAME, MAYBIFY(NULL));
             }
         }
         ++(sys_SDL_data->frames_this_second);
@@ -120,8 +130,15 @@ void sys_SDL_draw(game_t *game, system_t * system, MAYBE(void *) system_params, 
 }
 
 
-bool start(game_t *game, system_t *system) {
-    system->name ="SDL";
+renderable_t * sys_SDL_add_renderable(game_t *game, char *sprite_name, int x, int y, int depth) {
+    system_t *sys_sdl = game_get_system(game, SYS_SDL_NAME);
+    sys_SDL_data_t *sys_SDL_data = (sys_SDL_data_t *) UNMAYBE(sys_sdl->data);
+    return render_manager_create_renderable(&(sys_SDL_data->render_manager), sprite_name, x, y, depth);
+    
+}
+
+bool sdl_start(game_t *game, system_t *system) {
+    system->name = SYS_SDL_NAME;
     sys_SDL_data_t *sys_SDL_data = mem_alloc(sizeof(*sys_SDL_data));
     sys_SDL_data->win = NULL;
     sys_SDL_data->ren = NULL;
@@ -137,8 +154,11 @@ bool start(game_t *game, system_t *system) {
     if (SDL_Init(SDL_INIT_EVERYTHING | SDL_INIT_NOPARACHUTE) == -1){
         return FALSE;
     }
+    system->data = MAYBIFY(sys_SDL_data);
+    system->data_free = MAYBIFY_FUNC(mem_free);
+    
     game_export_event(game, system, sdl_check_input, MAYBIFY_FUNC(NULL));
-    game_register_hook(game, system, sys_SDL_clean, MAYBIFY(sys_SDL_data), EVENT_EXIT, MAYBIFY_FUNC(mem_free));
+    game_register_hook(game, system, sys_SDL_clean, MAYBIFY(sys_SDL_data), EVENT_EXIT, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_SDL_data), EVENT_START, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_SDL_data), sdl_check_input, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, sys_SDL_draw, MAYBIFY(sys_SDL_data), EVENT_NEW_FRAME, MAYBIFY_FUNC(NULL));
@@ -161,14 +181,6 @@ bool start(game_t *game, system_t *system) {
         sys_SDL_data->key_press_events[SDL_GetScancodeFromKey(((char*) UNMAYBE(pause_key_str))[0])] = EVENT_TOGGLE_PAUSE;
         mem_free(UNMAYBE(pause_key_str));
     }
-    
-    //render_manager_create_renderable(&(sys_SDL_data->render_manager), "black", -sys_SDL_data->render_manager.x_offset, -sys_SDL_data->render_manager.y_offset, 0);
-    renderable_t *rend = render_manager_create_renderable(&(sys_SDL_data->render_manager), "anim00", 20, 20, -200);
-    render_manager_play_animation(&(sys_SDL_data->render_manager), rend, "anim", 60, TRUE);
-    sound_manager_play_sample(&(sys_SDL_data->sound_manager), "ambient", 20, FALSE, NULL);
-    tween_value_t start, end;
-    start.dval = 0.0;
-    end.dval = 360.0;
-    tween_list_add_tween(&(game->tween_list),&(rend->tweens), &(rend->angle), TWEEN_TYPE_DOUBLE, 240, start, end, TWEEN_IN, linear_tween);
+
     return TRUE;
 }

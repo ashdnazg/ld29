@@ -5,24 +5,25 @@
 #include "core/mem_wrap.h"
 #include "core/game.h"
 #include "systems/sdl/sdl.h"
+#include "systems/map/map.h"
 #include "SDL2/SDL.h"
-//#include "systems/logger/logger.h"
 #include <stdlib.h>
 #include <stdio.h>
 
 int main(int argc, char* argv[]) {
     game_t game;
     game_init(&game);
-    system_t *sys = system_new();
-    sdl_start(&game, sys);
+    if(game_add_system(&game, sdl_start)) {
+        printf("loaded sdl\n");
+    }
+    if(game_add_system(&game, map_start)) {
+        printf("loaded map\n");
+    }
     game_load_systems(&game);
-    list_insert_tail(&(game.systems), sys);
     
     game_start(&game);
     
     game_clean(&game);
-    
-    system_free(sys);
 
     mem_wrap_print_mallocs();
     return 0;

@@ -241,7 +241,6 @@ SDL_Texture * load_image(render_manager_t *r_manager, const char * path) {
     }
     image = stbi_load(path, &im_w, &im_h, NULL, RGBA);
     exit_on_stbi_error(image);
-    
     bitmap = SDL_CreateRGBSurfaceFrom(image, im_w, im_h, RGBA * 8, RGBA * im_w,
                                    RMASK, GMASK, BMASK, AMASK);
     exit_on_SDL_error(bitmap);
@@ -262,6 +261,7 @@ sprite_t * sprite_new(SDL_Texture *texture, int x, int y, int w, int h) {
     rect->h = h;
     sprite->rect = rect;
     sprite->texture = texture;
+    sprite->name = "";
     return sprite;
 }
 
@@ -277,7 +277,7 @@ void draw_sprite(render_manager_t *r_manager, sprite_t *sprite, int x, int y, do
     pos.h = (int) (sprite->rect->h * scale);
     pos.x = x + (sprite->rect->w - pos.w) / 2;
     pos.y = y + (sprite->rect->h - pos.h) / 2;
-    
+    //printf("drawing %s, %p\n", sprite->name, sprite->texture);
     //SDL_RenderCopy(r_manager->renderer, sprite->texture, sprite->rect, &pos);
     SDL_RenderCopyEx(r_manager->renderer, sprite->texture, sprite->rect, &pos, angle, center, flip);
 }
@@ -299,6 +299,7 @@ sprite_t * load_sprite(render_manager_t *r_manager, const char * name) {
     SDL_Texture *texture = load_image(r_manager, path_buffer);
     SDL_QueryTexture(texture, NULL, NULL, &texture_width, &texture_height);
     spr = sprite_new(texture, 0, 0, texture_width, texture_height);
+    spr->name = name;
     asset_cache_add(&(r_manager->sprites), spr, name);
     return spr;
 }

@@ -3,10 +3,11 @@
 #include "mem_wrap.h"
 #include "int_list.h"
 #include <string.h>
+#include <stdio.h>
 
 asset_node_t * asset_node_new(void *asset, const char *name) {
     asset_node_t *asset_node = mem_alloc(sizeof(asset_node_t));
-    asset_node->name = name;
+    asset_node->name = mem_strdup(name);
     asset_node->asset = asset;
     link_init(&(asset_node->nodes_link));
     return asset_node;
@@ -14,6 +15,7 @@ asset_node_t * asset_node_new(void *asset, const char *name) {
 
 void asset_node_free(asset_node_t *asset_node) {
     link_remove_from_list(&(asset_node->nodes_link));
+    mem_free(asset_node->name);
     mem_free(asset_node);
 }
 

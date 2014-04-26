@@ -1,6 +1,6 @@
 .PHONY: test core
 
-DIRS = sdl
+DIRS = sdl map
 
 all: core
 	@for d in $(DIRS); do (cd $$d; $(MAKE) all ); done

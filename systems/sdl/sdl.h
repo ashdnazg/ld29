@@ -1,11 +1,11 @@
-#ifndef __LOGGER_H__
-#define __LOGGER_H__
+#ifndef __SDL_H__
+#define __SDL_H__
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-#include "SDL2/SDL.h"
+#include <SDL2/SDL.h>
 #include "core/system.h"
 #include "core/game.h"
 #include <stdint.h>
@@ -14,11 +14,13 @@ extern "C" {
 #include "sdl_video.h"
 #include "sdl_audio.h"
 
+#define SYS_SDL_NAME "SDL"
+
 #define GAME_NAME "AESIS"
-#define GAME_WIDTH 320
-#define GAME_HEIGHT 240
-#define WINDOW_SCALE 2
-#define STEP_INTERVAL 17
+#define GAME_WIDTH 640
+#define GAME_HEIGHT 480
+#define WINDOW_SCALE 1
+#define STEP_INTERVAL 1000
 #define SKIP_THRESHOLD 5
 #define MAX_SKIP 5
 
@@ -42,8 +44,9 @@ typedef struct sys_SDL_data_s {
     sound_manager_t sound_manager;
 } sys_SDL_data_t;
 
-bool start(game_t *game, system_t *system);
+bool sdl_start(game_t *game, system_t *system);
 
+renderable_t * sys_SDL_add_renderable(game_t *game, char *sprite_name, int x, int y, int depth);
 
 #ifdef __cplusplus
 }

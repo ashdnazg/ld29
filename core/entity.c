@@ -28,9 +28,9 @@ void entity_free(entity_t *entity) {
     mem_free(entity);
 }
 
-entity_t * entity_new(char *name, uint32_t id) {
+entity_t * entity_new(const char *name, uint32_t id) {
     entity_t *entity = mem_alloc(sizeof(*entity));
-    entity->name = name;
+    entity->name = mem_strdup(name);
     entity->id = id;
     link_init(&(entity->entities_link));
     list_init(&(entity->components), component_t, entity_components_link);

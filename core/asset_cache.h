@@ -13,7 +13,7 @@ extern "C" {
 
 typedef struct asset_node_s {
     link_t nodes_link;
-    const char *name;
+    char *name;
     void *asset;
 } asset_node_t;
 

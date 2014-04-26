@@ -1,3 +1,4 @@
+#include "macros.h"
 #include "system.h"
 #include "mem_wrap.h"
 #include <stdio.h>
@@ -6,19 +7,22 @@
 system_t * system_new(void) {
     system_t *system = mem_alloc(sizeof(system_t));
     system->name = NOT_INITIALIZED;
-    link_init(&(system->systems_link));
     system->local_events_map = NULL;
     system->local_components_map = NULL;
+    system->data = MAYBIFY(NULL);
+    system->data_free = MAYBIFY_FUNC(NULL);
     return system;
 }
 
 void system_free(system_t *system) {
-    link_remove_from_list(&(system->systems_link));
     if (NULL != system->local_events_map) {
         mem_free(system->local_events_map);
     }
     if (NULL != system->local_components_map) {
         mem_free(system->local_components_map);
+    }
+    if (NULL != UNMAYBE(system->data) && NULL != UNMAYBE(system->data_free)) {
+        ((free_callback_t) UNMAYBE(system->data_free))(UNMAYBE(system->data));
     }
     mem_free(system);
 }

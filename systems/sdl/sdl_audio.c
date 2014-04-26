@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <assert.h>
+#include <SDL2/SDL.h>
 
 #include "sdl.h"
 #include "sdl_audio.h"

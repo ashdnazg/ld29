@@ -30,7 +30,7 @@ struct entity_s {
 void entities_list_init(entities_list_t *entities_list);
 void entities_list_clean(entities_list_t *entities_list);
 
-entity_t * entity_new(char *name, uint32_t id);
+entity_t * entity_new(const char *name, uint32_t id);
 void entity_free(entity_t *entity);
 
 #ifdef __cplusplus
