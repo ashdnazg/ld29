@@ -22,6 +22,15 @@ extern "C" {
 
 #define NUM_SOLDIERS 10
 
+#define MALFUNCTION_CHANCE 1000
+#define FIX_CHANCE 400
+
+typedef enum peril_e {
+    NO_PERIL,
+    PERIL_WHALE,
+    PERIL_SHIP
+} peril_t;
+
 typedef enum task_e {
     TASK_IDLE,
     TASK_EAT,
@@ -30,6 +39,7 @@ typedef enum task_e {
     TASK_WATCH_PERISCOPE,
     TASK_MONITOR_ENGINE,
     TASK_MONITOR_WEAPONS,
+    TASK_MONITOR_HELM,
     __ROUTINE_TASKS,
     TASK_NO_TASK,
     TASK_SET_COURSE,
@@ -66,12 +76,14 @@ typedef struct game_state_s {
     map_t *current_map;
     bool new_task;
     task_t pending_task;
+    peril_t current_peril;
     
     //tasks status
     bool firing;
     bool steering;
     bool engine_monitored;
     bool weapons_monitored;
+    bool helm_monitored;
     bool periscope_watched;
     bool sonar_listened;
     bool sealing_leak;
@@ -86,6 +98,8 @@ typedef struct game_state_s {
     bool leaking;
     bool moving;
     bool fired;
+    bool weapons_malfunction;
+    bool engine_malfunction;
     
 } game_state_t;
 

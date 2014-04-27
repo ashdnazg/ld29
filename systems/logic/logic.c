@@ -65,6 +65,7 @@ tile_type_t get_task_tile_type(task_t task) {
         case TASK_STEER:
         case TASK_SET_COURSE:
         case TASK_WATCH_PERISCOPE:
+        case TASK_MONITOR_HELM:
             return TILE_CONTROL;
         case TASK_STOP_ENGINE:
         case TASK_START_ENGINE:
@@ -140,6 +141,9 @@ actor_action_t get_soldier_action(game_t *game, actor_t *actor, MAYBE(void *) ai
             case TASK_MONITOR_WEAPONS:
                 soldier_ai_params->game_state->weapons_monitored = TRUE;
                 break;
+            case TASK_MONITOR_HELM:
+                soldier_ai_params->game_state->helm_monitored = TRUE;
+                break;
             case TASK_SET_COURSE:
                 soldier_ai_params->game_state->setting_course = TRUE;
                 break;
@@ -174,7 +178,9 @@ actor_action_t get_soldier_action(game_t *game, actor_t *actor, MAYBE(void *) ai
                 soldier_ai_params->game_state->moving = FALSE;
                 break;
             case TASK_START_ENGINE:
-                soldier_ai_params->game_state->moving = TRUE;
+                if (!(soldier_ai_params->game_state->engine_malfunction)) {
+                    soldier_ai_params->game_state->moving = TRUE;
+                }
                 break;
             case TASK_STEER:
                 if (soldier_ai_params->game_state->has_target) {
@@ -182,7 +188,9 @@ actor_action_t get_soldier_action(game_t *game, actor_t *actor, MAYBE(void *) ai
                 }
                 break;
             case TASK_FIRE_TORPEDO:
-                soldier_ai_params->game_state->fired = TRUE;
+                if (!(soldier_ai_params->game_state->weapons_malfunction)) {
+                    soldier_ai_params->game_state->fired = TRUE;
+                }
                 break;
             case TASK_SEAL_LEAK:
                 map_close(game, actor->map, soldier_ai_params->action_destination_x, soldier_ai_params->action_destination_y);
@@ -210,11 +218,73 @@ void command_given(game_t *game, system_t * system, MAYBE(void *) system_params,
 void logic_update(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     game_state_t * game_state = UNMAYBE(system_params);
     
+    if (game_state->weapons_malfunction && game_state->weapons_monitored && !(rand() % FIX_CHANCE)) {
+        game_state->weapons_malfunction = FALSE;
+    } else if (!(game_state->weapons_malfunction || game_state->weapons_monitored || rand() % MALFUNCTION_CHANCE)) {
+        game_state->weapons_malfunction = TRUE;
+    }
+    
+    if (game_state->engine_malfunction && game_state->engine_monitored && !(rand() % FIX_CHANCE)) {
+        game_state->engine_malfunction = FALSE;
+    } else if (!(game_state->engine_malfunction || game_state->engine_monitored || rand() % MALFUNCTION_CHANCE)) {
+        game_state->engine_malfunction = TRUE;
+        game_state->moving = FALSE;
+    }
+    
+    text_clear_printer(game, "status");
+    text_print_line(game, "status", "Status:");
+    text_print_line(game, "status", "");
     if (game_state->new_task) {
         game_state->new_task = FALSE;
     } else {
         game_state->pending_task = TASK_NO_TASK;
     }
+    if (game_state->engine_monitored) {
+        if (game_state->engine_malfunction) {
+            text_print_line(game, "status", "Engine: Malfunction");
+        } else if (game_state->starting_engine) {
+            text_print_line(game, "status", "Engine: Starting...");
+        } else if (game_state->stopping_engine) {
+            text_print_line(game, "status", "Engine: Stopping...");
+        } else if (game_state->moving) {
+            text_print_line(game, "status", "Engine: On");
+        } else {
+            text_print_line(game, "status", "Engine: Off");
+        }
+    }
+    if (game_state->weapons_monitored) {
+        if (game_state->weapons_malfunction) {
+            text_print_line(game, "status", "Torpedo: Malfunction");
+        } else if (game_state->firing) {
+            text_print_line(game, "status", "Torpedo: Firing...");
+        } else {
+            text_print_line(game, "status", "Torpedo: Operational");
+        }
+    }
+    if (game_state->helm_monitored) {
+        if (game_state->has_target && game_state->on_target) {
+            text_print_line(game, "status", "Heading: Target");
+        } else if (game_state->on_target) {
+            text_print_line(game, "status", "Heading: ???");
+        } else if (game_state->steering || game_state->setting_course) {
+            text_print_line(game, "status", "Heading: Steering...");
+        } else {
+            text_print_line(game, "status", "Heading: Harbour");
+        }
+    }
+    
+    if (game_state->sonar_listened) {
+        text_print_line(game, "status", "Sonar: Nothing");
+    }
+    
+    if (game_state->periscope_watched) {
+        text_print_line(game, "status", "Periscope: Nothing");
+    }
+    
+    
+    
+    
+    
     game_state->new_task = FALSE;
     
     game_state->firing = FALSE;
@@ -262,7 +332,7 @@ void logic_startup(game_t *game, system_t * system, MAYBE(void *) system_params,
         actor->ai.ai_params = MAYBIFY(soldier_ai_params);
         actor->ai.ai_params_free = MAYBIFY_FUNC(mem_free);
     }
-    text_add_printer(game, "status", 100, 300);
+    text_add_printer(game, "status", 400, 300);
 }
 
 bool logic_start(game_t *game, system_t *system) {
@@ -272,16 +342,28 @@ bool logic_start(game_t *game, system_t *system) {
     game_state->controller_y = DESTINATION_NOT_SET;
     game_state->pending_task = TASK_NO_TASK;
     game_state->new_task = FALSE;
+    game_state->current_peril = NO_PERIL;
+    
     game_state->firing = FALSE;
     game_state->steering = FALSE;
     game_state->engine_monitored = FALSE;
     game_state->weapons_monitored = FALSE;
+    game_state->helm_monitored = FALSE;
     game_state->periscope_watched = FALSE;
     game_state->sonar_listened = FALSE;
     game_state->sealing_leak = FALSE;
     game_state->stopping_engine = FALSE;
     game_state->starting_engine = FALSE;
     game_state->setting_course = FALSE;
+    
+    game_state->course_set = FALSE;
+    game_state->has_target = FALSE;
+    game_state->on_target = FALSE;
+    game_state->leaking = FALSE;
+    game_state->moving = FALSE;
+    game_state->fired = FALSE;
+    game_state->weapons_malfunction = FALSE;
+    game_state->engine_malfunction = FALSE;
     
     system->data = MAYBIFY(game_state);
     system->data_free = MAYBIFY_FUNC(mem_free);

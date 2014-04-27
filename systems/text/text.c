@@ -64,7 +64,7 @@ void text_printer_clear(text_printer_t *t_printer) {
 
 void text_printer_print(game_t *game, text_printer_t *t_printer, const char *text) {
     int temp_x = t_printer->x;
-    int temp_y = t_printer->y + t_printer->num_lines * (t_printer->size_y + Y_SPACING);
+    int temp_y = t_printer->y + t_printer->num_lines * (t_printer->size_y + Y_SPACING) * TEXT_SCALE;
     int i;
     int len = strlen(text);
     char name_buffer[BUFFER_SIZE];
@@ -74,9 +74,10 @@ void text_printer_print(game_t *game, text_printer_t *t_printer, const char *tex
     link_init(&(line->lines_link));
     for (i = 0;i < len;++i){
         sprintf(name_buffer, "%s%03d", FONT_NAME, text[i]);
-        temp_x += t_printer->size_x + X_SPACING;
+        temp_x += (t_printer->size_x + X_SPACING) * TEXT_SCALE ;
         line->renderables[i] = sys_SDL_add_renderable(game, name_buffer, temp_x, temp_y, TEXT_DEPTH);
         line->renderables[i]->offset = FALSE;
+        line->renderables[i]->scale = TEXT_SCALE;
     }
     (t_printer->num_lines)++;
     list_insert_tail(&(t_printer->lines), line);

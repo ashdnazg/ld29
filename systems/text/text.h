@@ -14,6 +14,8 @@ typedef struct text_data_s text_data_t;
 #include "core/game.h"
 #include "systems/sdl/sdl_video.h"
 
+#define TEXT_SCALE 2
+
 #define TEXT_SIZE_X 8
 #define TEXT_SIZE_Y 8
 

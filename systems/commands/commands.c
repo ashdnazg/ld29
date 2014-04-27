@@ -60,8 +60,18 @@ void print_commands(game_t *game, system_t * system, MAYBE(void *) system_params
     int i;
     char text_buffer[BUFFER_SIZE];
     command_data_t *command_data = (command_data_t *) UNMAYBE(system->data);
+    
+    if (command_data->voice != NULL) {
+        text_clear_printer(game, "commands");
+        text_print_line(game, "commands", "...");
+        return;
+    }
+    
+    
     if (command_data->changed) {
         text_clear_printer(game, "commands");
+        text_print_line(game, "commands", "Orders:");
+        text_print_line(game, "commands", "");
         for (i = 1; i < MAX_RULES; i++) {
             if (NULL == command_data->current->rules[i].target) {
                 break;
@@ -98,6 +108,8 @@ const char * get_task_sample(task_t task) {
             return "steer";
         case TASK_FIRE_TORPEDO:
             return "fire_torpedo";
+        case TASK_MONITOR_HELM:
+            return "monitor_helm";
         case TASK_SEAL_LEAK:
             return "seal_leak";
         case TASK_PANIC:
@@ -131,7 +143,7 @@ void choose_command(game_t *game, system_t * system, MAYBE(void *) system_params
 }
 
 void command_init(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
-    text_add_printer(game, "commands", 100, 300);
+    text_add_printer(game, "commands", 10, 300);
 }
 
 bool commands_start(game_t *game, system_t *system) {
@@ -157,9 +169,11 @@ bool commands_start(game_t *game, system_t *system) {
     command_state_add_rule(state, command_data->head, "Monitor", TASK_MONITOR_ENGINE);
     command_state_add_rule(state, command_data->head, "Stop", TASK_STOP_ENGINE);
     command_state_add_rule(state, command_data->head, "Start", TASK_START_ENGINE);
-    state = command_data_add_state(command_data, command_data->head, "Control");
+    state = command_data_add_state(command_data, command_data->head, "Sensors");
     command_state_add_rule(state, command_data->head, "Man the Periscope", TASK_WATCH_PERISCOPE);
     command_state_add_rule(state, command_data->head, "Man the Sonar", TASK_LISTEN_SONAR);
+    state = command_data_add_state(command_data, command_data->head, "Helm");
+    command_state_add_rule(state, command_data->head, "Man the Helm", TASK_MONITOR_HELM);
     command_state_add_rule(state, command_data->head, "Head to Target", TASK_STEER);
     command_state_add_rule(state, command_data->head, "Head to Harbour", TASK_SET_COURSE);
     state = command_data_add_state(command_data, command_data->head, "Misc");
