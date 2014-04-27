@@ -46,6 +46,7 @@ typedef struct actor_ai_s {
 } actor_ai_t;
 
 struct actor_s {
+    bool alive;
     link_t actors_link;
     map_t *map;
     actor_type_t type;
@@ -65,6 +66,7 @@ typedef struct sys_actors_data_s {
 } sys_actors_data_t;
 
 
+void actor_kill(game_t *game, actor_t *actor);
 
 bool actors_in_same_room(actor_t *a, actor_t *b);
 

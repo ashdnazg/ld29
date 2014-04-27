@@ -237,6 +237,8 @@ bool sdl_start(game_t *game, system_t *system) {
     }
     SDL_RenderSetLogicalSize(sys_sdl_data->ren, GAME_WIDTH, GAME_HEIGHT);
     render_manager_init(&(sys_sdl_data->render_manager), sys_sdl_data->ren);
+    sys_sdl_data->render_manager.x_offset = 40;
+    sys_sdl_data->render_manager.y_offset = 40;
 
     set_key_press_from_settings(sys_sdl_data, "pause_key",          SDLK_p,     EVENT_TOGGLE_PAUSE);
     set_key_press_from_settings(sys_sdl_data, "camera_up_key",      SDLK_UP,    sdl_move_camera_up);

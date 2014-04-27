@@ -35,6 +35,10 @@ actor_action_t get_controller_action(game_t *game, actor_t *actor, MAYBE(void *)
     uint32_t actor_tile_x, actor_tile_y;
     game_state_t * game_state = UNMAYBE(ai_params);
     map_translate_coordinates(game_state->current_map, actor->x, actor->y, &actor_tile_x, &actor_tile_y);
+    if (map_drowned(actor->map, actor_tile_x, actor_tile_y )) {
+        actor_kill(game, actor);
+        return ACTOR_ACTION_IDLE;
+    }
     if (game_state->controller_x != DESTINATION_NOT_SET && game_state->controller_y != DESTINATION_NOT_SET) {
         map_tile_center(game_state->current_map, game_state->controller_x, game_state->controller_y, &dest_center_x, &dest_center_y);
         if ((ABS(actor->x - dest_center_x + ACTOR_SIZE / 2) < 2 && ABS(actor->y - dest_center_y + ACTOR_SIZE / 2) < 2) || 
@@ -55,6 +59,7 @@ actor_action_t get_controller_action(game_t *game, actor_t *actor, MAYBE(void *)
 tile_type_t get_task_tile_type(task_t task) {
     switch(task) {
         case TASK_IDLE:
+        case TASK_PANIC:
             return TILE_ANYWHERE;
         case TASK_EAT:
             return TILE_HOLD;
@@ -82,12 +87,27 @@ tile_type_t get_task_tile_type(task_t task) {
 
 actor_action_t soldier_switch_task(actor_t *actor, soldier_ai_params_t *soldier_ai_params, task_t new_task) {
     uint32_t actor_tile_x, actor_tile_y;
-    soldier_ai_params->task = new_task;
+    bool result;
     map_translate_coordinates(actor->map, actor->x, actor->y, &actor_tile_x, &actor_tile_y);
+    
+    if (new_task == TASK_SEAL_LEAK) {
+        result = map_find_best_hatch(actor->map, actor_tile_x, actor_tile_y, &soldier_ai_params->action_destination_x, &soldier_ai_params->action_destination_y);
+        printf("result: %d\n", result);
+        if (result) {
+            soldier_ai_params->task = new_task;
+            soldier_ai_params->time_left = SEAL_TIME;
+            soldier_ai_params->destination_x = soldier_ai_params->action_destination_x;
+            soldier_ai_params->destination_y = soldier_ai_params->action_destination_y;
+            return ACTOR_ACTION_MOVE;
+        } else {
+            return ACTOR_ACTION_IDLE;
+        }
+    }
+    soldier_ai_params->task = new_task;
     
     soldier_ai_params->time_left = TASK_MIN_TIME + rand() % (TASK_MAX_TIME - TASK_MIN_TIME);
     tile_type_t required_tile = get_task_tile_type(new_task);
-    if (required_tile == TILE_ANYWHERE || actor->map->matrix[COORD(actor->map, actor_tile_x, actor_tile_y)] == required_tile) {
+    if (actor->map->matrix[COORD(actor->map, actor_tile_x, actor_tile_y)] == required_tile) {
         soldier_ai_params->destination_x = DESTINATION_NOT_SET;
         soldier_ai_params->destination_y = DESTINATION_NOT_SET;
         return ACTOR_ACTION_WORK;
@@ -101,22 +121,43 @@ actor_action_t get_soldier_action(game_t *game, actor_t *actor, MAYBE(void *) ai
     int32_t dest_center_x, dest_center_y;
     uint32_t actor_tile_x, actor_tile_y;
     actor_action_t action;
-    
+    map_translate_coordinates(actor->map, actor->x, actor->y, &actor_tile_x, &actor_tile_y);
+    if (soldier_ai_params->task == TASK_REGRET) {
+        return ACTOR_ACTION_IDLE;
+    }
+    if (map_in_water(actor->map, actor_tile_x, actor_tile_y )) {
+        if (map_drowned(actor->map, actor_tile_x, actor_tile_y )) {
+            soldier_ai_params->task = TASK_REGRET;
+            actor_kill(game, actor);
+            return ACTOR_ACTION_IDLE;
+        } else if (soldier_ai_params->task != TASK_SEAL_LEAK){
+            printf("panic: %d\n", soldier_ai_params->task);
+            action = soldier_switch_task(actor, soldier_ai_params, TASK_PANIC);
+            *out_x = soldier_ai_params->destination_x;
+            *out_y = soldier_ai_params->destination_y;
+            return action;
+        }
+    }
     if (actors_in_same_room(actor, soldier_ai_params->game_state->captain) && soldier_ai_params->game_state->pending_task != TASK_NO_TASK &&
         (!(soldier_ai_params->busy) || soldier_ai_params->task < soldier_ai_params->game_state->pending_task)) {
         action = soldier_switch_task(actor, soldier_ai_params, soldier_ai_params->game_state->pending_task);
-        soldier_ai_params->game_state->pending_task = TASK_NO_TASK;
+        if (soldier_ai_params->game_state->pending_task != TASK_PANIC) {
+            soldier_ai_params->game_state->pending_task = TASK_NO_TASK;
+        }
         *out_x = soldier_ai_params->destination_x;
         *out_y = soldier_ai_params->destination_y;
         soldier_ai_params->busy = TRUE;
         return action;
     }
-    
-    map_translate_coordinates(actor->map, actor->x, actor->y, &actor_tile_x, &actor_tile_y);
     if (soldier_ai_params->destination_x != DESTINATION_NOT_SET && soldier_ai_params->destination_y != DESTINATION_NOT_SET) {
         map_tile_center(actor->map, soldier_ai_params->destination_x, soldier_ai_params->destination_y, &dest_center_x, &dest_center_y);
-        if ((ABS(actor->x - dest_center_x + ACTOR_SIZE / 2) < 2 && ABS(actor->y - dest_center_y + ACTOR_SIZE / 2) < 2) || 
-            (!map_reachable(actor->map, soldier_ai_params->destination_x, soldier_ai_params->destination_y, actor_tile_x, actor_tile_y))) {
+        if ((ABS(actor->x - dest_center_x + ACTOR_SIZE / 2) < 2 && ABS(actor->y - dest_center_y + ACTOR_SIZE / 2) < 2) ||
+            (soldier_ai_params->task == TASK_SEAL_LEAK && ABS(actor_tile_x - soldier_ai_params->destination_x) <= 1 &&
+                ABS(actor_tile_y - soldier_ai_params->destination_y) <= 1)) {
+            if (!map_reachable(actor->map, soldier_ai_params->destination_x, soldier_ai_params->destination_y, actor_tile_x, actor_tile_y))
+            {
+                soldier_ai_params->task = TASK_NO_TASK;
+            }
             soldier_ai_params->destination_x = DESTINATION_NOT_SET;
             soldier_ai_params->destination_y = DESTINATION_NOT_SET;
         } else {
@@ -213,7 +254,11 @@ void command_given(game_t *game, system_t * system, MAYBE(void *) system_params,
     game_state->pending_task = (task_t) UNMAYBE(sender_params);
     game_state->new_task = TRUE;
 }
-
+bool logic_captain_alive(game_t *game) {
+    system_t *sys_logic = game_get_system(game, SYS_LOGIC_NAME);
+    game_state_t * game_state = UNMAYBE(sys_logic->data);
+    return game_state->captain->alive;
+}
 
 void logic_update(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     game_state_t * game_state = UNMAYBE(system_params);
@@ -292,6 +337,7 @@ void logic_update(game_t *game, system_t * system, MAYBE(void *) system_params, 
     game_state->steering = FALSE;
     game_state->engine_monitored = FALSE;
     game_state->weapons_monitored = FALSE;
+    game_state->helm_monitored = FALSE;
     game_state->periscope_watched = FALSE;
     game_state->sonar_listened = FALSE;
     game_state->sealing_leak = FALSE;

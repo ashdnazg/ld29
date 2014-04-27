@@ -106,7 +106,7 @@ void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params,
     sys_actors_data_t *sys_actors_data = (sys_actors_data_t *) UNMAYBE(system->data);
     
     list_for_each(&(sys_actors_data->actors), actor_t *, actor) {
-        if (NULL != UNMAYBE(actor->ai.get_action)) {
+        if (actor->alive && NULL != UNMAYBE(actor->ai.get_action)) {
             
             actor_action = ((ai_func_t) UNMAYBE(actor->ai.get_action))(game, actor, actor->ai.ai_params, &dest_tile_x, &dest_tile_y);
             
@@ -135,6 +135,11 @@ void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params,
     }
 }
 
+void actor_kill(game_t *game, actor_t *actor) {
+    actor->alive = FALSE;
+    renderable_free(actor->renderable);
+    actor->renderable = sys_SDL_add_renderable(game, "dead", actor->x, actor->y, ACTOR_DEPTH);
+}
 
 void actor_free(actor_t *actor) {
     link_remove_from_list(&(actor->actors_link));
@@ -162,6 +167,7 @@ actor_t * sys_actors_add_actor(game_t *game, map_t *map, actor_type_t type, int3
     actor_t *actor = mem_alloc(sizeof(*actor));
     const char *type_name = NULL;
     link_init(&(actor->actors_link));
+    actor->alive = TRUE;
     actor->map = map;
     actor->type = type;
     actor->ai.get_action = MAYBIFY_FUNC(NULL);

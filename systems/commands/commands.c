@@ -3,6 +3,8 @@
 #include "core/int_list.h"
 #include "core/game.h"
 
+#include "systems/logic/logic.h"
+
 #include <stdio.h>
 
 LOCAL_EVENTS
@@ -60,6 +62,10 @@ void print_commands(game_t *game, system_t * system, MAYBE(void *) system_params
     int i;
     char text_buffer[BUFFER_SIZE];
     command_data_t *command_data = (command_data_t *) UNMAYBE(system->data);
+    if (!logic_captain_alive(game)) {
+        text_clear_printer(game, "commands");
+        text_print_line(game, "commands", ":)");
+    }
     
     if (command_data->voice != NULL) {
         text_clear_printer(game, "commands");

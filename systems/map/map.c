@@ -40,14 +40,22 @@ bool tile_passable(tile_type_t type) {
 }
 
 
+
 bool map_in_map(map_t *map, int x, int y) {
     return (x >= 0 && y >= 0 && x <= map->width && y <= map->height);
 }
 
 bool map_tile_passable(map_t *map, int x, int y) {
-    return map_in_map(map, x, y) && tile_passable(map->matrix[COORD(map,x,y)]);
+    return map_in_map(map, x, y) && tile_passable(map->matrix[COORD(map,x,y)]) && map->water_level[COORD(map, x, y)] < MAX_WATER_LEVEL;
 }
 
+bool map_in_water(map_t *map, int x, int y) {
+    return map_in_map(map, x, y) && map->water_level[COORD(map, x, y)] != 0;
+}
+
+bool map_drowned(map_t *map, int x, int y) {
+    return map_in_map(map, x, y) && map->water_level[COORD(map, x, y)] >= MAX_WATER_LEVEL;
+}
 
 
 tile_coord_t * tile_coord_new(uint32_t origin_x, uint32_t origin_y) {
@@ -70,12 +78,19 @@ void map_get_random_tile(map_t *map, tile_type_t type, uint32_t *out_x, uint32_t
     
     for (i = 0; i < map->height; i++) {
         for (j = 0; j < map->width; j++) {
-            if (map->matrix[COORD(map, j, i)] == type || (type == TILE_ANYWHERE && map_tile_passable(map,j,i))) {
+            if (map->matrix[COORD(map, j, i)] == type || (type == TILE_ANYWHERE && map_tile_passable(map,j,i) && 
+                                                          map->water_level[COORD(map, j, i)] == 0)) {
                 optional_tiles[count].x = j;
                 optional_tiles[count].y = i;
                 count += 1;
             }
         }
+    }
+    if (count == 0) {
+        *out_x = 0;
+        *out_y = 0;
+        mem_free(optional_tiles);
+        return;
     }
     choice = rand() % count;
     *out_x = optional_tiles[choice].x;
@@ -193,15 +208,6 @@ void map_update_tile(game_t *game, map_t *map, uint32_t x, uint32_t y, tile_type
     }
 }
 
-void map_close(game_t *game, map_t *map, uint32_t x, uint32_t y) {
-    if (!map_in_map(map, x, y) || (map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE &&  map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE)) {
-        printf("tried to close nothing at: %d,%d", x, y);
-        return;
-    }
-    if (map->matrix[COORD(map,x,y)] == TILE_OPEN_PASSAGE) {
-        map_update_tile(game, map, x, y, TILE_CLOSED_PASSAGE);
-    }
-}
 
 bool map_reachable(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t destination_x, uint32_t destination_y) {
     dijkstra_map_t *d_map = map_create_dijkstra(map, origin_x, origin_y);
@@ -209,6 +215,85 @@ bool map_reachable(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t de
     dijkstra_map_free(d_map);
     return result;
 }
+
+bool map_find_best_hatch(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t *out_hatch_x, uint32_t *out_hatch_y) {
+    int i,j;
+    int hatch_x, hatch_y;
+    int min_hatch = DIJKSTRA_IMPASSABLE;
+    dijkstra_map_t *d_map_leak = mem_alloc(sizeof(*d_map_leak));
+    int delta = 0;
+    tile_coord_t *current_tile;
+    heap_t heap;
+    d_map_leak->matrix = mem_alloc(sizeof(*(d_map_leak->matrix)) * map->height * map->width);
+    dijkstra_map_t *d_map_origin = map_create_dijkstra(map, origin_x, origin_y);
+    d_map_leak->height = map->height;
+    d_map_leak->width = map->width;
+    memset(d_map_leak->matrix, DIJKSTRA_IMPASSABLE, sizeof(*(d_map_leak->matrix)) * map->height * map->width);
+    heap_init(&heap, tile_coord_t, coords_link);
+    
+    
+    for (i = 0; i < map->height; ++i) {
+        for (j = 0; j < map->width; ++j) {
+            if (map->water_level[COORD(map,j,i)] >= MAX_WATER_LEVEL) {
+                heap_insert(&heap, tile_coord_new(j, i), 0);
+            }
+        }
+    }
+    
+    
+    while(!heap_is_empty(&heap)) {
+        current_tile = (tile_coord_t *) heap_delete_min(&heap);
+        if (d_map_leak->matrix[COORD(d_map_leak, current_tile->x, current_tile->y)] > current_tile->coords_link.key) {
+            d_map_leak->matrix[COORD(d_map_leak, current_tile->x, current_tile->y)] = current_tile->coords_link.key;
+            //printf ("x: %d, y: %d, key: %d\n", current_tile->x, current_tile->y, current_tile->coords_link.key);
+            for (i = -1; i <= 1; i++) {
+                for (j = -1; j <= 1; j++) {
+                    if (i == 0 && j == 0) {
+                        continue;
+                    }
+                    if (d_map_leak->matrix[COORD(d_map_leak, current_tile->x + j, current_tile->y + i)] != DIJKSTRA_IMPASSABLE) {
+                        continue;
+                    }
+                    if (!map_tile_passable(map, current_tile->x + j, current_tile->y + i)) {
+                        continue;
+                    }
+                    if (i == 0 || j == 0) {
+                        delta = 2;
+                    } else {
+                        delta = 3;
+                    }
+                    heap_insert(&heap, tile_coord_new(current_tile->x + j, current_tile->y + i), current_tile->coords_link.key + delta);
+                }
+            }
+        }
+        mem_free(current_tile); 
+    }
+    
+    
+    
+    for (i = 0; i < map->height; ++i) {
+        for (j = 0; j < map->width; ++j) {
+            if (d_map_origin->matrix[COORD(d_map_origin, j, i)] != DIJKSTRA_IMPASSABLE && 
+                d_map_leak->matrix[COORD(d_map_leak, j, i)] < min_hatch &&
+                map->matrix[COORD(map, j, i)] == TILE_OPEN_PASSAGE) {
+                min_hatch = d_map_leak->matrix[COORD(d_map_leak, j, i)];
+                hatch_x = j;
+                hatch_y = i;
+                
+            }
+        }
+    }
+    dijkstra_map_free(d_map_leak);
+    dijkstra_map_free(d_map_origin);
+    if (min_hatch == DIJKSTRA_IMPASSABLE) {
+        return FALSE;
+    } else {
+        *out_hatch_x = hatch_x;
+        *out_hatch_y = hatch_y;
+        return TRUE;
+    }
+}
+
 
 map_t *map_get_main_map(game_t *game) {
     system_t *sys_map = game_get_system(game, SYS_MAP_NAME);
@@ -228,6 +313,7 @@ void map_clean(map_t *map) {
         // }
     // }
     mem_free(map->water_level);
+    mem_free(map->water_delta);
     mem_free(map->water_renderables);
     mem_free(map->renderables);
 }
@@ -335,7 +421,7 @@ void map_init(map_t *map, const char *name) {
 }
 
 
-void set_water_level(game_t *game, map_t *map, uint32_t x, uint32_t y, uint8_t level, bool leak) {
+void set_water_level(game_t *game, map_t *map, uint32_t x, uint32_t y, int8_t level, bool leak) {
     char buffer[BUFFER_SIZE];
     int actual_level = level;
     if (map->water_level[COORD(map, x, y)] == level) {
@@ -344,7 +430,13 @@ void set_water_level(game_t *game, map_t *map, uint32_t x, uint32_t y, uint8_t l
     if (!leak && level > MAX_WATER_LEVEL) {
         actual_level = MAX_WATER_LEVEL;
     }
+    if (level < 0) {
+        actual_level = 0;
+    }
     map->water_level[COORD(map, x, y)] = actual_level;
+    if (NULL != UNMAYBE(map->water_renderables[COORD(map, x, y)])) {
+        renderable_free((renderable_t *) UNMAYBE(map->water_renderables[COORD(map, x, y)]));
+    }
     if (actual_level / 8 > 0) {
         sprintf(buffer, "water_%d", actual_level / 8);
         map->water_renderables[COORD(map, x, y)] = MAYBIFY(sys_SDL_add_renderable(game, buffer, x * TILE_SIZE, y * TILE_SIZE, MAP_WATER_DEPTH));
@@ -400,8 +492,8 @@ void diffuse_water(game_t *game, map_t *map, uint32_t x, uint32_t y) {
     for (i = -1; i <= 1; ++i) {
         for (j = -1; j <= 1; ++j) {
             if (map_tile_passable(map, x + j, y + i)) {
-                map->water_delta[COORD(map, x+j, y+i)] += map->water_level[COORD(map,j,i)] / 16;
-                map->water_delta[COORD(map, x, y)] -= map->water_level[COORD(map,j,i)] / 16;
+                map->water_delta[COORD(map, x+j, y+i)] += map->water_level[COORD(map,x,y)] / 16;
+                map->water_delta[COORD(map, x, y)] -= map->water_level[COORD(map,x,y)] / 16;
             }
         }
     } 
@@ -434,12 +526,22 @@ void map_update_leaks(game_t *game, system_t * system, MAYBE(void *) system_para
         for (j = 0; j < map->width; ++j) {
             if (map_tile_passable(map, j, i)) {
                 set_water_level(game, map, j, i, map->water_level[COORD(map,j,i)] + map->water_delta[COORD(map,j,i)], FALSE);
-                map->water_delta[COORD(map,j,i)] = 0;
+                map->water_delta[COORD(map,j,i)] = -1;
             }
         }
     }
 }
 
+void map_close(game_t *game, map_t *map, uint32_t x, uint32_t y) {
+    if (!map_in_map(map, x, y) || (map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE &&  map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE)) {
+        printf("tried to close nothing at: %d,%d", x, y);
+        return;
+    }
+    if (map->matrix[COORD(map,x,y)] == TILE_OPEN_PASSAGE) {
+        map_update_tile(game, map, x, y, TILE_CLOSED_PASSAGE);
+        set_water_level(game, map, x, y, 0, FALSE);
+    }
+}
 
 bool map_start(game_t *game, system_t *system) {
     system->name = SYS_MAP_NAME;

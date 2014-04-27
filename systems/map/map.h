@@ -73,11 +73,17 @@ typedef struct map_s {
     uint32_t width;
     tile_type_t *matrix;
     MAYBE(renderable_t *) *renderables;
-    uint8_t *water_level;
-    uint8_t *water_delta;
+    int8_t *water_level;
+    int8_t *water_delta;
     MAYBE(renderable_t *) *water_renderables;
     int wait_diffuse;
 } map_t;
+
+bool map_find_best_hatch(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t *out_hatch_x, uint32_t *out_hatch_y);
+
+bool map_drowned(map_t *map, int x, int y);
+
+bool map_in_water(map_t *map, int x, int y);
 
 void map_random_leak(game_t *game, map_t *map);
 

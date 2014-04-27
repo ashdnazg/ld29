@@ -20,6 +20,8 @@ extern "C" {
 #define TASK_MAX_TIME (10 * 60)
 #define TASK_MIN_TIME (3 * 60)
 
+#define SEAL_TIME (2 * 60)
+
 #define NUM_SOLDIERS 10
 
 #define MALFUNCTION_CHANCE 1000
@@ -32,7 +34,6 @@ typedef enum peril_e {
 } peril_t;
 
 typedef enum task_e {
-    TASK_IDLE,
     TASK_EAT,
     TASK_SLEEP,
     TASK_LISTEN_SONAR,
@@ -41,6 +42,7 @@ typedef enum task_e {
     TASK_MONITOR_WEAPONS,
     TASK_MONITOR_HELM,
     __ROUTINE_TASKS,
+    TASK_IDLE,
     TASK_NO_TASK,
     TASK_SET_COURSE,
     TASK_STOP_ENGINE,
@@ -116,8 +118,8 @@ typedef struct soldier_ai_params_s {
     game_state_t *game_state;
 } soldier_ai_params_t;
 
+bool logic_captain_alive(game_t *game);
 bool logic_start(game_t *game, system_t *system);
-
 
 #ifdef __cplusplus
 }
