@@ -62,6 +62,7 @@ void renderable_init(renderable_t *renderable, sprite_t *default_sprite, int x, 
     renderable->center = NULL;
     renderable->flip = SDL_FLIP_NONE;
     renderable->animation_playback = NULL;
+    renderable->offset = TRUE;
     link_init(&(renderable->renderables_link));
 }
 
@@ -209,8 +210,13 @@ void render_manager_draw(render_manager_t *r_manager) {
     SDL_RenderClear(r_manager->renderer);
     list_sort(&(r_manager->renderables), (cmp_cb_t) cmp_y);
     list_for_each(&(r_manager->renderables), renderable_t *, renderable){
-        draw_sprite(r_manager, renderable->sprite, renderable->x + r_manager->x_offset, renderable->y + r_manager->y_offset, 
+        if (renderable->offset) {
+            draw_sprite(r_manager, renderable->sprite, renderable->x + r_manager->x_offset, renderable->y + r_manager->y_offset, 
                                 renderable->scale, renderable->angle, renderable->center, renderable->flip);
+        } else {
+            draw_sprite(r_manager, renderable->sprite, renderable->x, renderable->y, 
+                                renderable->scale, renderable->angle, renderable->center, renderable->flip);
+        }
     }
     SDL_RenderPresent(r_manager->renderer);
 }
@@ -311,24 +317,31 @@ sprite_t * load_sprite(render_manager_t *r_manager, const char * name) {
     // return sprite_new(texture, 0, 0, texture_width, texture_height);
 // }
 
-sprite_t ** load_sprite_sheet(render_manager_t *r_manager, const char * path, 
-                        int spr_width, int spr_height, int padding, unsigned int *out_num_sprites) {
+unsigned int load_sprite_sheet(render_manager_t *r_manager, const char * name, 
+                        int spr_width, int spr_height, int padding) {
     SDL_Texture *texture = NULL;
-    sprite_t ** sprites = NULL;
-    int num_rows, num_cols, texture_width, texture_height, i;
-    
-    texture = load_image(r_manager, path);
+    MAYBE(sprite_t *) maybe_spr;
+    sprite_t *spr;
+    int num_rows, num_cols, texture_width, texture_height, i, count;
+    char path_buffer[BUFFER_SIZE];
+    sprintf(path_buffer, "%s%s%03d", ASSETS_DIR, name, 0);
+    maybe_spr = asset_cache_get(&(r_manager->sprites), path_buffer);
+    if (UNMAYBE(maybe_spr) != NULL) {
+        return 0;
+    }
+    sprintf(path_buffer, "%s%s%s", ASSETS_DIR, name, SPRITE_EXTENSION);
+    texture = load_image(r_manager, path_buffer);
     SDL_QueryTexture(texture, NULL, NULL, &texture_width, &texture_height);
     num_cols = ((texture_width - padding) / (spr_width + padding));
     num_rows = ((texture_height - padding) / (spr_height + padding));
-    *out_num_sprites = num_rows * num_cols;
-
-    sprites = mem_alloc(sizeof(sprite_t *) * (*out_num_sprites));
+    count = num_rows * num_cols;
     
-    for (i = 0;i < (*out_num_sprites); ++i) {
-        sprites[i] = sprite_new(texture, (i % num_cols) * (spr_width + padding) + padding, 
+    for (i = 0;i < count; ++i) {
+        sprintf(path_buffer, "%s%03d", name, i);
+        spr = sprite_new(texture, (i % num_cols) * (spr_width + padding) + padding, 
                                         (i / num_cols) * (spr_height + padding) + padding, spr_width, spr_height);
+        asset_cache_add(&(r_manager->sprites), spr, path_buffer);
+        
     }
-    
-    return sprites;
+    return count;
 }

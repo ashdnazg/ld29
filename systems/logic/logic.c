@@ -7,6 +7,7 @@
 #include "systems/sdl/sdl.h"
 #include "systems/actors/actors.h"
 #include "systems/map/map.h"
+#include "systems/text/text.h"
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -149,6 +150,7 @@ void logic_startup(game_t *game, system_t * system, MAYBE(void *) system_params,
         actor->ai.ai_params = MAYBIFY(soldier_ai_params);
         actor->ai.ai_params_free = MAYBIFY_FUNC(mem_free);
     }
+   
 }
 
 bool logic_start(game_t *game, system_t *system) {

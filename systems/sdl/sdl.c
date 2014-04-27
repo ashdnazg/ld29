@@ -23,7 +23,8 @@ LOCAL_EVENTS
     sdl_move_camera_left,
     sdl_move_camera_right,
     sdl_left_mouse_down,
-    sdl_right_mouse_down
+    sdl_right_mouse_down,
+    sdl_pressed_number
 END_LOCAL_EVENTS
 
 void move_camera_up(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
@@ -48,13 +49,13 @@ void move_camera_right(game_t *game, system_t * system, MAYBE(void *) system_par
 
 void key_pressed(game_t *game, system_t *system, SDL_Scancode scancode, sys_sdl_data_t *sys_sdl_data) {
     if (sys_sdl_data->key_press_events[scancode] != NO_EVENT) {
-        game_trigger_event(game, system, sys_sdl_data->key_press_events[scancode], MAYBIFY(NULL));
+        game_trigger_event(game, system, sys_sdl_data->key_press_events[scancode], MAYBIFY(SDL_GetKeyFromScancode(scancode)));
     }
 }
 
 void key_released(game_t *game, system_t *system, SDL_Keycode scancode, sys_sdl_data_t *sys_sdl_data) {
     if (sys_sdl_data->key_release_events[scancode] != NO_EVENT) {
-        game_trigger_event(game, system, sys_sdl_data->key_release_events[scancode], MAYBIFY(NULL));
+        game_trigger_event(game, system, sys_sdl_data->key_release_events[scancode], MAYBIFY(SDL_GetKeyFromScancode(scancode)));
     }
 }
 
@@ -148,11 +149,23 @@ void sys_SDL_draw(game_t *game, system_t * system, MAYBE(void *) system_params, 
     render_manager_draw(&(sys_sdl_data->render_manager));
 }
 
+sample_playback_t * sys_SDL_play_sample(game_t *game, const char *sample_name, int volume, bool loop, void **parent_ptr) {
+    system_t *sys_sdl = game_get_system(game, SYS_SDL_NAME);
+    sys_sdl_data_t *sys_sdl_data = (sys_sdl_data_t *) UNMAYBE(sys_sdl->data);
+    return sound_manager_play_sample(&(sys_sdl_data->sound_manager), sample_name, volume, loop, parent_ptr);
+}
 
 renderable_t * sys_SDL_add_renderable(game_t *game, const char *sprite_name, int x, int y, int depth) {
     system_t *sys_sdl = game_get_system(game, SYS_SDL_NAME);
     sys_sdl_data_t *sys_sdl_data = (sys_sdl_data_t *) UNMAYBE(sys_sdl->data);
     return render_manager_create_renderable(&(sys_sdl_data->render_manager), sprite_name, x, y, depth);
+}
+
+unsigned int sys_SDL_load_sheet(game_t *game, const char *sheet_name, 
+                        int spr_width, int spr_height, int padding) {
+    system_t *sys_sdl = game_get_system(game, SYS_SDL_NAME);
+    sys_sdl_data_t *sys_sdl_data = (sys_sdl_data_t *) UNMAYBE(sys_sdl->data);
+    return load_sprite_sheet(&(sys_sdl_data->render_manager), sheet_name, spr_width, spr_height, padding);
 }
 
 void set_key_press_from_settings(sys_sdl_data_t *sys_sdl_data, const char *key_settings, SDL_Keycode default_key, uint32_t event_id) {
@@ -202,6 +215,7 @@ bool sdl_start(game_t *game, system_t *system) {
     game_export_event(game, system, sdl_move_camera_right, MAYBIFY_FUNC(NULL));
     game_export_event(game, system, sdl_left_mouse_down, MAYBIFY_FUNC(mem_free));
     game_export_event(game, system, sdl_right_mouse_down, MAYBIFY_FUNC(mem_free));
+    game_export_event(game, system, sdl_pressed_number, MAYBIFY_FUNC(NULL));
     
     game_register_hook(game, system, sys_SDL_clean, MAYBIFY(sys_sdl_data), EVENT_EXIT, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_sdl_data), EVENT_START, MAYBIFY_FUNC(NULL));
@@ -229,6 +243,15 @@ bool sdl_start(game_t *game, system_t *system) {
     set_key_press_from_settings(sys_sdl_data, "camera_down_key",    SDLK_DOWN,  sdl_move_camera_down);
     set_key_press_from_settings(sys_sdl_data, "camera_left_key",    SDLK_LEFT,  sdl_move_camera_left);
     set_key_press_from_settings(sys_sdl_data, "camera_right_key",   SDLK_RIGHT, sdl_move_camera_right);
-
-    return TRUE;
+    set_key_press_from_settings(sys_sdl_data, "one_key", SDLK_1,   sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "two_key", SDLK_2,   sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "three_key", SDLK_3, sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "four_key", SDLK_4,  sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "five_key", SDLK_5,  sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "six_key", SDLK_6,   sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "seven_key", SDLK_7, sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "eight_key", SDLK_8, sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "nine_key", SDLK_9,  sdl_pressed_number);
+    set_key_press_from_settings(sys_sdl_data, "zero_key", SDLK_0,  sdl_pressed_number);
+    return TRUE;                                                                     
 }

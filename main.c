@@ -8,6 +8,8 @@
 #include "systems/map/map.h"
 #include "systems/actors/actors.h"
 #include "systems/logic/logic.h"
+#include "systems/text/text.h"
+#include "systems/commands/commands.h"
 #include "SDL2/SDL.h"
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,6 +30,12 @@ int main(int argc, char* argv[]) {
     }
     if(game_add_system(&game, logic_start)) {
         printf("loaded logic\n");
+    }
+    if(game_add_system(&game, text_start)) {
+        printf("loaded text\n");
+    }
+    if(game_add_system(&game, commands_start)) {
+        printf("loaded commands\n");
     }
     game_load_systems(&game);
     

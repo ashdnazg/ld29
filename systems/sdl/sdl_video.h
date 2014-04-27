@@ -58,6 +58,7 @@ struct renederable_s {
     sprite_t *sprite;
     sprite_t *default_sprite;
     animation_playback_t *animation_playback;
+    bool offset;
 };
 
 typedef struct render_manager_s {
@@ -76,7 +77,7 @@ void exit_on_SDL_error(void * pt);
 void exit_on_stbi_error(void * pt);
 SDL_Texture* load_image(render_manager_t *r_manager, const char * path);
 sprite_t * load_sprite(render_manager_t *r_manager, const char * name);
-sprite_t ** load_sprite_sheet(render_manager_t *r_manager, const char * path, int spr_width, int spr_height, int padding, unsigned int *out_num_sprites);
+unsigned int load_sprite_sheet(render_manager_t *r_manager, const char * name, int spr_width, int spr_height, int padding);
 void draw_image(render_manager_t *r_manager, SDL_Texture *texture, int x, int y);
 sprite_t * sprite_new(SDL_Texture *texture, int x, int y, int w, int h);
 void sprite_free(sprite_t *sprite);

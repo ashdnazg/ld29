@@ -53,7 +53,11 @@ typedef struct sys_sdl_data_s {
 
 bool sdl_start(game_t *game, system_t *system);
 
+sample_playback_t * sys_SDL_play_sample(game_t *game, const char *sample_name, int volume, bool loop, void **parent_ptr);
+
 renderable_t * sys_SDL_add_renderable(game_t *game, const char *sprite_name, int x, int y, int depth);
+
+unsigned int sys_SDL_load_sheet(game_t *game, const char *sheet_name, int spr_width, int spr_height, int padding);
 
 #ifdef __cplusplus
 }
