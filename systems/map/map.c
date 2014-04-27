@@ -473,7 +473,6 @@ void map_init_graphics(game_t *game, system_t * system, MAYBE(void *) system_par
             }
         }
     }
-    map_random_leak(game, map);
 }
 
 void diffuse_leak(game_t *game, map_t *map, uint32_t x, uint32_t y) {
@@ -533,8 +532,7 @@ void map_update_leaks(game_t *game, system_t * system, MAYBE(void *) system_para
 }
 
 void map_close(game_t *game, map_t *map, uint32_t x, uint32_t y) {
-    if (!map_in_map(map, x, y) || (map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE &&  map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE)) {
-        printf("tried to close nothing at: %d,%d", x, y);
+    if (!map_in_map(map, x, y) || (map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE &&  map->matrix[COORD(map,x,y)] != TILE_CLOSED_PASSAGE)) {
         return;
     }
     if (map->matrix[COORD(map,x,y)] == TILE_OPEN_PASSAGE) {
