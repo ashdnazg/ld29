@@ -26,6 +26,7 @@ extern "C" {
 
 #define CAMERA_STEP 20
 
+
 #ifdef _WIN32
 #define ASSETS_DIR "assets\\"
 #else

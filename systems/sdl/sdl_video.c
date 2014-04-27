@@ -209,9 +209,16 @@ int cmp_y(renderable_t *renderable_a, renderable_t *renderable_b) {
 void render_manager_draw(render_manager_t *r_manager) {
     SDL_RenderClear(r_manager->renderer);
     list_sort(&(r_manager->renderables), (cmp_cb_t) cmp_y);
+    int shake_offset_x = 0, shake_offset_y = 0;
+    if (r_manager->shake_time > 0) {
+        shake_offset_x = rand() % 11 - 5;
+        shake_offset_y = rand() % 11 - 5;
+        r_manager->shake_time -= 1;
+    }
     list_for_each(&(r_manager->renderables), renderable_t *, renderable){
         if (renderable->offset) {
-            draw_sprite(r_manager, renderable->sprite, renderable->x + r_manager->x_offset, renderable->y + r_manager->y_offset, 
+            draw_sprite(r_manager, renderable->sprite, renderable->x + r_manager->x_offset + shake_offset_x, 
+                                renderable->y + r_manager->y_offset + shake_offset_y, 
                                 renderable->scale, renderable->angle, renderable->center, renderable->flip);
         } else {
             draw_sprite(r_manager, renderable->sprite, renderable->x, renderable->y, 

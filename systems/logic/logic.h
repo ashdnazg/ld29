@@ -22,10 +22,21 @@ extern "C" {
 
 #define SEAL_TIME (2 * 60)
 
-#define NUM_SOLDIERS 10
+#define NUM_SOLDIERS 20
 
 #define MALFUNCTION_CHANCE 1000
 #define FIX_CHANCE 400
+
+#define SHIP_CHANCE 2000
+#define DEPTH_CHARGE_CHANCE 2000
+
+#define RUN_AWAY_CHANCE 2000
+
+#define WHALE_CHANCE 5000
+#define WHAM_CHANCE 2000
+
+#define MESSAGE_DELAY (60 * 5)
+#define TORPEDO_DELAY (60 * 2)
 
 typedef enum peril_e {
     NO_PERIL,
@@ -79,7 +90,9 @@ typedef struct game_state_s {
     bool new_task;
     task_t pending_task;
     peril_t current_peril;
-    
+    const char *message;
+    int message_delay;
+    int torpedo_delay;
     //tasks status
     bool firing;
     bool steering;

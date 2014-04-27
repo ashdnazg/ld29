@@ -15,7 +15,8 @@
 LOCAL_EVENTS
     sdl_left_mouse_down,
     sdl_right_mouse_down,
-    commands_send_command
+    commands_send_command,
+    sdl_screen_shake
 END_LOCAL_EVENTS
 
 void update_controller(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
@@ -43,7 +44,6 @@ actor_action_t get_controller_action(game_t *game, actor_t *actor, MAYBE(void *)
         map_tile_center(game_state->current_map, game_state->controller_x, game_state->controller_y, &dest_center_x, &dest_center_y);
         if ((ABS(actor->x - dest_center_x + ACTOR_SIZE / 2) < 2 && ABS(actor->y - dest_center_y + ACTOR_SIZE / 2) < 2) || 
             (!map_reachable(actor->map, game_state->controller_x, game_state->controller_y, actor_tile_x, actor_tile_y))) {
-            printf("stopped\n");
             game_state->controller_x = DESTINATION_NOT_SET;
             game_state->controller_y = DESTINATION_NOT_SET;
             return ACTOR_ACTION_IDLE;
@@ -92,7 +92,6 @@ actor_action_t soldier_switch_task(actor_t *actor, soldier_ai_params_t *soldier_
     
     if (new_task == TASK_SEAL_LEAK) {
         result = map_find_best_hatch(actor->map, actor_tile_x, actor_tile_y, &soldier_ai_params->action_destination_x, &soldier_ai_params->action_destination_y);
-        printf("result: %d\n", result);
         if (result) {
             soldier_ai_params->task = new_task;
             soldier_ai_params->time_left = SEAL_TIME;
@@ -131,7 +130,6 @@ actor_action_t get_soldier_action(game_t *game, actor_t *actor, MAYBE(void *) ai
             actor_kill(game, actor);
             return ACTOR_ACTION_IDLE;
         } else if (soldier_ai_params->task != TASK_SEAL_LEAK){
-            printf("panic: %d\n", soldier_ai_params->task);
             action = soldier_switch_task(actor, soldier_ai_params, TASK_PANIC);
             *out_x = soldier_ai_params->destination_x;
             *out_y = soldier_ai_params->destination_y;
@@ -212,7 +210,7 @@ actor_action_t get_soldier_action(game_t *game, actor_t *actor, MAYBE(void *) ai
         switch (soldier_ai_params->task) {
             case TASK_SET_COURSE:
                 if (soldier_ai_params->game_state->moving) {
-                    soldier_ai_params->game_state->course_set = TRUE;
+                    soldier_ai_params->game_state->on_target = FALSE;
                 }
                 break;
             case TASK_STOP_ENGINE:
@@ -224,7 +222,7 @@ actor_action_t get_soldier_action(game_t *game, actor_t *actor, MAYBE(void *) ai
                 }
                 break;
             case TASK_STEER:
-                if (soldier_ai_params->game_state->has_target) {
+                if (soldier_ai_params->game_state->has_target && soldier_ai_params->game_state->moving) {
                     soldier_ai_params->game_state->on_target = TRUE;
                 }
                 break;
@@ -276,8 +274,61 @@ void logic_update(game_t *game, system_t * system, MAYBE(void *) system_params, 
         game_state->moving = FALSE;
     }
     
+    if (game_state->current_peril == NO_PERIL && !(rand() % SHIP_CHANCE)) {
+        game_state->current_peril = PERIL_SHIP;
+        game_state->has_target = TRUE;
+    }
+    
+    if (game_state->current_peril == NO_PERIL && game_state->moving && !(rand() % WHALE_CHANCE)) {
+        game_state->current_peril = PERIL_WHALE;
+    }
+    
+    if (game_state->current_peril == PERIL_SHIP && game_state->moving && !(rand() % RUN_AWAY_CHANCE)) {
+        game_state->current_peril = NO_PERIL;
+        game_state->has_target = FALSE;
+        game_state->message_delay = MESSAGE_DELAY;
+        game_state->message = "We've run away!";
+    }
+    
+    if (game_state->current_peril == PERIL_WHALE && !(game_state->moving)) {
+        game_state->current_peril = NO_PERIL;
+        game_state->message_delay = MESSAGE_DELAY;
+        game_state->message = "The whale has left";
+    }
+    if (game_state->torpedo_delay > 1) {
+        game_state->torpedo_delay -= 1;
+    } else if (game_state->torpedo_delay == 1 && game_state->current_peril == PERIL_SHIP){
+        game_state->current_peril = NO_PERIL;
+        game_state->torpedo_delay = 0;
+        game_state->message_delay = MESSAGE_DELAY;
+        game_state->has_target = FALSE;
+        game_state->message = "The enemy ship is sinking!";
+    }
+    
+    if (game_state->current_peril == PERIL_SHIP && game_state->fired && game_state->torpedo_delay == 0 && game_state->on_target) {
+        game_state->torpedo_delay = TORPEDO_DELAY;
+    }
+    
+    if (game_state->current_peril == PERIL_SHIP && !(rand() % DEPTH_CHARGE_CHANCE)) {
+        game_push_event(game, system, sdl_screen_shake, MAYBIFY(NULL));
+        map_random_leak(game, game_state->current_map);
+        game_state->message_delay = MESSAGE_DELAY;
+        game_state->message = "Hit by depth charge!";
+    }
+
+    if (game_state->current_peril == PERIL_WHALE && !(rand() % WHAM_CHANCE)) {
+        game_push_event(game, system, sdl_screen_shake, MAYBIFY(NULL));
+        map_random_leak(game, game_state->current_map);
+        game_state->message_delay = MESSAGE_DELAY;
+        game_state->message = "The whale has rammed us!";
+    }
     
     text_clear_printer(game, "status");
+    text_clear_printer(game, "danger");
+    if (game_state->message_delay > 0) {
+        text_print_line(game, "danger", game_state->message);
+        game_state->message_delay -= 1;
+    }
     text_print_line(game, "status", "Status:");
     text_print_line(game, "status", "");
     if (game_state->new_task) {
@@ -308,23 +359,33 @@ void logic_update(game_t *game, system_t * system, MAYBE(void *) system_params, 
         }
     }
     if (game_state->helm_monitored) {
-        if (game_state->has_target && game_state->on_target) {
+        if (game_state->steering || game_state->setting_course) {
+            text_print_line(game, "status", "Heading: Steering...");
+        } else if (game_state->has_target && game_state->on_target) {
             text_print_line(game, "status", "Heading: Target");
         } else if (game_state->on_target) {
             text_print_line(game, "status", "Heading: ???");
-        } else if (game_state->steering || game_state->setting_course) {
-            text_print_line(game, "status", "Heading: Steering...");
         } else {
             text_print_line(game, "status", "Heading: Harbour");
         }
     }
     
-    if (game_state->sonar_listened) {
-        text_print_line(game, "status", "Sonar: Nothing");
+    if (game_state->periscope_watched) {
+        if (game_state->current_peril == PERIL_SHIP) {
+            text_print_line(game, "status", "Periscope: Enemy Ship!");
+            text_print_line(game, "danger", "Danger! Enemy ship spotted!");
+        } else {
+            text_print_line(game, "status", "Periscope: Nothing");
+        }
     }
     
-    if (game_state->periscope_watched) {
-        text_print_line(game, "status", "Periscope: Nothing");
+    if (game_state->sonar_listened) {
+        if (game_state->current_peril == PERIL_WHALE) {
+            text_print_line(game, "status", "Sonar: Whale!");
+            text_print_line(game, "danger", "Danger! A whale tries to mate with us!");
+        } else {
+            text_print_line(game, "status", "Sonar: Nothing");
+        }
     }
     
     
@@ -332,7 +393,7 @@ void logic_update(game_t *game, system_t * system, MAYBE(void *) system_params, 
     
     
     game_state->new_task = FALSE;
-    
+    game_state->fired = FALSE;
     game_state->firing = FALSE;
     game_state->steering = FALSE;
     game_state->engine_monitored = FALSE;
@@ -380,6 +441,7 @@ void logic_startup(game_t *game, system_t * system, MAYBE(void *) system_params,
         actor->ai.ai_params_free = MAYBIFY_FUNC(mem_free);
     }
     text_add_printer(game, "status", 400, 300);
+    text_add_printer(game, "danger", 10, 500);
 }
 
 bool logic_start(game_t *game, system_t *system) {
@@ -390,6 +452,9 @@ bool logic_start(game_t *game, system_t *system) {
     game_state->pending_task = TASK_NO_TASK;
     game_state->new_task = FALSE;
     game_state->current_peril = NO_PERIL;
+    game_state->message = NULL;
+    game_state->message_delay = 0;
+    game_state->torpedo_delay = 0;
     
     game_state->firing = FALSE;
     game_state->steering = FALSE;
@@ -418,6 +483,7 @@ bool logic_start(game_t *game, system_t *system) {
     game_import_event(game, system, sdl_left_mouse_down);
     game_import_event(game, system, sdl_right_mouse_down);
     game_import_event(game, system, commands_send_command);
+    game_import_event(game, system, sdl_screen_shake);
     game_register_hook(game, system, logic_startup, MAYBIFY(game_state), EVENT_START, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, logic_update, MAYBIFY(game_state), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, update_controller, MAYBIFY(game_state), sdl_right_mouse_down, MAYBIFY_FUNC(NULL));

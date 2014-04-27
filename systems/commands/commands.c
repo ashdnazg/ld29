@@ -141,7 +141,7 @@ void choose_command(game_t *game, system_t * system, MAYBE(void *) system_params
         if (command_data->current->rules[num].task != TASK_NO_TASK) {
             game_push_event(game, system, commands_send_command, MAYBIFY(command_data->current->rules[num].task));
             
-            command_data->voice = sys_SDL_play_sample(game, get_task_sample(command_data->current->rules[num].task), 100, FALSE, (void **) &(command_data->voice));
+            command_data->voice = sys_SDL_play_sample(game, get_task_sample(command_data->current->rules[num].task), 40, FALSE, (void **) &(command_data->voice));
         }
         command_data->current = command_data->current->rules[num].target;
         command_data->changed = TRUE;
@@ -188,7 +188,7 @@ bool commands_start(game_t *game, system_t *system) {
     
     command_data->current = command_data->head;
     game_register_hook(game, system, command_init, MAYBIFY(NULL), EVENT_START, MAYBIFY_FUNC(NULL));
-    game_register_hook(game, system, print_commands, MAYBIFY(NULL), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, print_commands, MAYBIFY(NULL), EVENT_NEW_FRAME, MAYBIFY_FUNC(NULL));
     
     return TRUE;
 }

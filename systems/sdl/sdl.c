@@ -24,7 +24,8 @@ LOCAL_EVENTS
     sdl_move_camera_right,
     sdl_left_mouse_down,
     sdl_right_mouse_down,
-    sdl_pressed_number
+    sdl_pressed_number,
+    sdl_screen_shake
 END_LOCAL_EVENTS
 
 void move_camera_up(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
@@ -45,6 +46,11 @@ void move_camera_left(game_t *game, system_t * system, MAYBE(void *) system_para
 void move_camera_right(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
     sys_sdl_data_t *sys_sdl_data = (sys_sdl_data_t *) UNMAYBE(system_params);
     sys_sdl_data->render_manager.x_offset -= CAMERA_STEP;
+}
+
+void screen_shake(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    sys_sdl_data_t *sys_sdl_data = (sys_sdl_data_t *) UNMAYBE(system_params);
+    sys_sdl_data->render_manager.shake_time = SHAKE_TIME;
 }
 
 void key_pressed(game_t *game, system_t *system, SDL_Scancode scancode, sys_sdl_data_t *sys_sdl_data) {
@@ -216,6 +222,7 @@ bool sdl_start(game_t *game, system_t *system) {
     game_export_event(game, system, sdl_left_mouse_down, MAYBIFY_FUNC(mem_free));
     game_export_event(game, system, sdl_right_mouse_down, MAYBIFY_FUNC(mem_free));
     game_export_event(game, system, sdl_pressed_number, MAYBIFY_FUNC(NULL));
+    game_export_event(game, system, sdl_screen_shake, MAYBIFY_FUNC(NULL));
     
     game_register_hook(game, system, sys_SDL_clean, MAYBIFY(sys_sdl_data), EVENT_EXIT, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_sdl_data), EVENT_START, MAYBIFY_FUNC(NULL));
@@ -226,6 +233,7 @@ bool sdl_start(game_t *game, system_t *system) {
     game_register_hook(game, system, move_camera_down, MAYBIFY(sys_sdl_data), sdl_move_camera_down, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, move_camera_left, MAYBIFY(sys_sdl_data), sdl_move_camera_left, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, move_camera_right, MAYBIFY(sys_sdl_data), sdl_move_camera_right, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, screen_shake, MAYBIFY(sys_sdl_data), sdl_screen_shake, MAYBIFY_FUNC(NULL));
     
     sys_sdl_data->win = SDL_CreateWindow(GAME_NAME, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, GAME_WIDTH * WINDOW_SCALE, GAME_HEIGHT * WINDOW_SCALE, SDL_WINDOW_SHOWN);
     if (sys_sdl_data->win == NULL) {
@@ -241,6 +249,7 @@ bool sdl_start(game_t *game, system_t *system) {
     sys_sdl_data->render_manager.y_offset = 40;
 
     set_key_press_from_settings(sys_sdl_data, "pause_key",          SDLK_p,     EVENT_TOGGLE_PAUSE);
+    sys_sdl_data->key_press_events[SDL_GetScancodeFromKey(SDLK_SPACE)] = EVENT_TOGGLE_PAUSE;
     set_key_press_from_settings(sys_sdl_data, "camera_up_key",      SDLK_UP,    sdl_move_camera_up);
     set_key_press_from_settings(sys_sdl_data, "camera_down_key",    SDLK_DOWN,  sdl_move_camera_down);
     set_key_press_from_settings(sys_sdl_data, "camera_left_key",    SDLK_LEFT,  sdl_move_camera_left);
@@ -255,5 +264,7 @@ bool sdl_start(game_t *game, system_t *system) {
     set_key_press_from_settings(sys_sdl_data, "eight_key", SDLK_8, sdl_pressed_number);
     set_key_press_from_settings(sys_sdl_data, "nine_key", SDLK_9,  sdl_pressed_number);
     set_key_press_from_settings(sys_sdl_data, "zero_key", SDLK_0,  sdl_pressed_number);
+    
+    sound_manager_play_sample(&(sys_sdl_data->sound_manager), "music", 50, TRUE, NULL);
     return TRUE;                                                                     
 }

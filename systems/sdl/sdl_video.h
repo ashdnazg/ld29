@@ -21,6 +21,7 @@ extern "C" {
 #define BMASK 0x00ff0000
 #define AMASK 0xff000000
 
+#define SHAKE_TIME (1 * 60)
 
 typedef struct sprite_s {
     SDL_Texture *texture;
@@ -70,6 +71,7 @@ typedef struct render_manager_s {
     asset_cache_t sprites;
     int x_offset;
     int y_offset;
+    int shake_time;
 } render_manager_t;
 
 
