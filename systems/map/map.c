@@ -41,7 +41,7 @@ bool tile_passable(tile_type_t type) {
 
 
 bool map_in_map(map_t *map, int x, int y) {
-        return (x >= 0 && y >= 0 && x <= map->width && y <= map->height);
+    return (x >= 0 && y >= 0 && x <= map->width && y <= map->height);
 }
 
 bool map_tile_passable(map_t *map, int x, int y) {
@@ -126,6 +126,82 @@ dijkstra_map_t * map_create_dijkstra(map_t *map, uint32_t origin_x, uint32_t ori
     return d_map;
 }
 
+const char *get_tile_name(tile_type_t type) {
+    const char *tile_name;
+    switch(type) {
+        case TILE_WEAPONS       :
+            tile_name = "tile_weapons";
+            break;
+        case TILE_SONAR         :
+            tile_name = "tile_sonar";
+            break;
+        case TILE_CONTROL       :
+            tile_name = "tile_control";
+            break;
+        case TILE_CREW_QUARTERS :
+            tile_name = "tile_crew_quarters";
+            break;
+        case TILE_CPT_QUARTERS  :
+            tile_name = "tile_cpt_quarters";
+            break;
+        case TILE_HOLD          :
+            tile_name = "tile_hold";
+            break;
+        case TILE_ENGINES       :
+            tile_name = "tile_engines";
+            break;
+        case TILE_PRESSURE_HULL :
+            tile_name = "tile_pressure_hull";
+            break;
+        case TILE_OUTER_HULL    :
+            tile_name = "tile_outer_hull";
+            break;
+        case TILE_OPEN_PASSAGE  :
+            tile_name = "tile_open_passage";
+            break;
+        case TILE_CLOSED_PASSAGE :
+            tile_name = "tile_closed_passage";
+            break;
+        case TILE_INTERIOR       :
+            tile_name = "tile_interior";
+            break;
+        case TILE_INTERNAL_WALL  :
+            tile_name = "tile_internal_wall";
+            break;
+        case TILE_NOTHING        :
+            tile_name = NULL;
+            break;
+        default:
+            printf("wrong colour: %x\n", type);
+            exit(1);
+    }
+    return tile_name;
+}
+
+void map_update_tile(game_t *game, map_t *map, uint32_t x, uint32_t y, tile_type_t new_type) {
+    const char *tile_name;
+    map->matrix[COORD(map,x,y)] = new_type;
+    MAYBE(renderable_t *) maybe_rend = map->renderables[COORD(map,x,y)];
+    if (UNMAYBE(maybe_rend) != NULL) {
+        renderable_free((renderable_t *) UNMAYBE(maybe_rend));
+    }
+    tile_name = get_tile_name(map->matrix[COORD(map, x, y)]);
+    if (tile_name != NULL) {
+        map->renderables[COORD(map, x, y)] = MAYBIFY(sys_SDL_add_renderable(game, tile_name, x * TILE_SIZE, y * TILE_SIZE, MAP_DEPTH));
+    } else {
+        map->renderables[COORD(map, x, y)] = MAYBIFY(NULL);
+    }
+}
+
+void map_close(game_t *game, map_t *map, uint32_t x, uint32_t y) {
+    if (!map_in_map(map, x, y) || (map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE &&  map->matrix[COORD(map,x,y)] != TILE_OPEN_PASSAGE)) {
+        printf("tried to close nothing at: %d,%d", x, y);
+        return;
+    }
+    if (map->matrix[COORD(map,x,y)] == TILE_OPEN_PASSAGE) {
+        map_update_tile(game, map, x, y, TILE_CLOSED_PASSAGE);
+    }
+}
 
 bool map_reachable(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t destination_x, uint32_t destination_y) {
     dijkstra_map_t *d_map = map_create_dijkstra(map, origin_x, origin_y);
@@ -261,53 +337,7 @@ void map_init_graphics(game_t *game, system_t * system, MAYBE(void *) system_par
     int i, j;
     for (i = 0; i < map->height; ++i) {
         for (j = 0; j < map->width; ++j) {
-            switch(map->matrix[i * map->width + j]) {
-                case TILE_WEAPONS       :
-                    tile_name = "tile_weapons";
-                    break;
-                case TILE_SONAR         :
-                    tile_name = "tile_sonar";
-                    break;
-                case TILE_CONTROL       :
-                    tile_name = "tile_control";
-                    break;
-                case TILE_CREW_QUARTERS :
-                    tile_name = "tile_crew_quarters";
-                    break;
-                case TILE_CPT_QUARTERS  :
-                    tile_name = "tile_cpt_quarters";
-                    break;
-                case TILE_HOLD          :
-                    tile_name = "tile_hold";
-                    break;
-                case TILE_ENGINES       :
-                    tile_name = "tile_engines";
-                    break;
-                case TILE_PRESSURE_HULL :
-                    tile_name = "tile_pressure_hull";
-                    break;
-                case TILE_OUTER_HULL    :
-                    tile_name = "tile_outer_hull";
-                    break;
-                case TILE_OPEN_PASSAGE  :
-                    tile_name = "tile_open_passage";
-                    break;
-                case TILE_CLOSED_PASSAGE :
-                    tile_name = "tile_closed_passage";
-                    break;
-                case TILE_INTERIOR       :
-                    tile_name = "tile_interior";
-                    break;
-                case TILE_INTERNAL_WALL  :
-                    tile_name = "tile_internal_wall";
-                    break;
-                case TILE_NOTHING        :
-                    tile_name = NULL;
-                    break;
-                default:
-                    printf("wrong colour: %x, %d, %d\n", map->matrix[COORD(map, j, i)], i, j);
-                    exit(1);
-            }
+            tile_name = get_tile_name(map->matrix[i * map->width + j]);
             if (tile_name != NULL) {
                 map->renderables[COORD(map, j, i)] = MAYBIFY(sys_SDL_add_renderable(game, tile_name, j * TILE_SIZE, i * TILE_SIZE, MAP_DEPTH));
             } else {

@@ -71,6 +71,8 @@ typedef struct map_s {
     MAYBE(renderable_t *) *renderables;
 } map_t;
 
+void map_close(game_t *game, map_t *map, uint32_t x, uint32_t y);
+
 void map_get_random_tile(map_t *map, tile_type_t type, uint32_t *out_x, uint32_t *out_y);
 
 bool map_reachable(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t destination_x, uint32_t destination_y);

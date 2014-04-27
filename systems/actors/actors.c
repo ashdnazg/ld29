@@ -108,7 +108,7 @@ void actors_update(game_t *game, system_t * system, MAYBE(void *) system_params,
     list_for_each(&(sys_actors_data->actors), actor_t *, actor) {
         if (NULL != UNMAYBE(actor->ai.get_action)) {
             
-            actor_action = ((ai_func_t) UNMAYBE(actor->ai.get_action))(actor, actor->ai.ai_params, &dest_tile_x, &dest_tile_y);
+            actor_action = ((ai_func_t) UNMAYBE(actor->ai.get_action))(game, actor, actor->ai.ai_params, &dest_tile_x, &dest_tile_y);
             
             switch(actor_action) {
                 case ACTOR_ACTION_MOVE:
@@ -143,6 +143,17 @@ void actor_free(actor_t *actor) {
         ((free_callback_t) UNMAYBE(actor->ai.ai_params_free))(UNMAYBE(actor->ai.ai_params));
     }
     mem_free(actor);
+}
+
+bool actors_in_same_room(actor_t *a, actor_t *b) {
+    uint32_t a_x, a_y, b_x, b_y;
+
+    if (a->map != b->map) {
+        return FALSE;
+    }
+    map_translate_coordinates(a->map, a->x, a->y, &a_x, &a_y);
+    map_translate_coordinates(b->map, b->x, b->y, &b_x, &b_y);
+    return (a->map->matrix[COORD(a->map,a_x,a_y)] == b->map->matrix[COORD(b->map,b_x,b_y)]);
 }
 
 actor_t * sys_actors_add_actor(game_t *game, map_t *map, actor_type_t type, int32_t x, int32_t y) {
@@ -190,6 +201,7 @@ void actors_clean(game_t *game, system_t * system, MAYBE(void *) system_params, 
         actor_free(actor);
     }
 }
+
 
 
 bool actors_start(game_t *game, system_t *system) {

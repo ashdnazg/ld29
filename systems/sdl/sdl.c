@@ -99,6 +99,9 @@ void check_input(game_t *game, system_t * system, MAYBE(void *) system_params, M
     if(time_to_next <= 0) {
         sys_sdl_data->next_frame_time += STEP_INTERVAL;
         draw = TRUE;
+        if (!(game->paused)) {
+            game_trigger_event(game, system, EVENT_NEW_STEP, MAYBIFY(NULL));
+        }
         if(time_to_next < -(STEP_INTERVAL * SKIP_THRESHOLD))
         {
             if(sys_sdl_data->frames_skipped >= MAX_SKIP) {
@@ -111,9 +114,6 @@ void check_input(game_t *game, system_t * system, MAYBE(void *) system_params, M
             }
         } else {
             sys_sdl_data->frames_skipped = 0;
-            if (!(game->paused)) {
-                game_trigger_event(game, system, EVENT_NEW_STEP, MAYBIFY(NULL));
-            }
             if (draw) {
                 game_trigger_event(game, system, EVENT_NEW_FRAME, MAYBIFY(NULL));
             }
