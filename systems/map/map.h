@@ -25,6 +25,7 @@ extern "C" {
 #define RGBA 4
 #define TILE_TYPE_MASK   0x00FFFFFF
 #define MAP_DEPTH 0
+#define MAP_WATER_DEPTH 1
 #define TILE_SIZE 10
 
 #define COORD(map, x, y) ((y) * (map)->width + (x))
@@ -33,6 +34,9 @@ extern "C" {
 
 #define DIJKSTRA_IMPASSABLE UINT32_MAX
 
+#define MAX_WATER_LEVEL 64
+#define LEAK_WATER_LEVEL (MAX_WATER_LEVEL + 1)
+#define DIFFUSE_DELAY 60
 
 typedef struct tile_coord_s {
     heap_link_t coords_link;
@@ -69,7 +73,13 @@ typedef struct map_s {
     uint32_t width;
     tile_type_t *matrix;
     MAYBE(renderable_t *) *renderables;
+    uint8_t *water_level;
+    uint8_t *water_delta;
+    MAYBE(renderable_t *) *water_renderables;
+    int wait_diffuse;
 } map_t;
+
+void map_random_leak(game_t *game, map_t *map);
 
 void map_close(game_t *game, map_t *map, uint32_t x, uint32_t y);
 

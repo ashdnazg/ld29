@@ -227,6 +227,8 @@ void map_clean(map_t *map) {
             // }
         // }
     // }
+    mem_free(map->water_level);
+    mem_free(map->water_renderables);
     mem_free(map->renderables);
 }
 
@@ -294,6 +296,13 @@ void map_init(map_t *map, const char *name) {
     map->width = im_w;
     map->matrix = mem_alloc(sizeof(*(map->matrix)) * im_h * im_w);
     map->renderables = mem_alloc(sizeof(*(map->renderables)) * im_h * im_w);
+    map->water_level = mem_alloc(sizeof(*(map->water_level)) * im_h * im_w);
+    map->water_delta = mem_alloc(sizeof(*(map->water_level)) * im_h * im_w);
+    map->water_renderables = mem_alloc(sizeof(*(map->water_renderables)) * im_h * im_w);
+    memset(map->water_level, 0, sizeof(*(map->water_level)) * im_h * im_w);
+    memset(map->water_delta, 0, sizeof(*(map->water_level)) * im_h * im_w);
+    memset(map->water_renderables, 0, sizeof(*(map->water_renderables)) * im_h * im_w);
+    map->wait_diffuse = DIFFUSE_DELAY;
     for (i = 0; i < im_h; ++i) {
         for (j = 0; j < im_w; ++j) {
             tile_id = *((uint32_t *) &(image[i * im_w * 4 + j * 4])) & TILE_TYPE_MASK;
@@ -325,6 +334,33 @@ void map_init(map_t *map, const char *name) {
     free(image);
 }
 
+
+void set_water_level(game_t *game, map_t *map, uint32_t x, uint32_t y, uint8_t level, bool leak) {
+    char buffer[BUFFER_SIZE];
+    int actual_level = level;
+    if (map->water_level[COORD(map, x, y)] == level) {
+        return;
+    }
+    if (!leak && level > MAX_WATER_LEVEL) {
+        actual_level = MAX_WATER_LEVEL;
+    }
+    map->water_level[COORD(map, x, y)] = actual_level;
+    if (actual_level / 8 > 0) {
+        sprintf(buffer, "water_%d", actual_level / 8);
+        map->water_renderables[COORD(map, x, y)] = MAYBIFY(sys_SDL_add_renderable(game, buffer, x * TILE_SIZE, y * TILE_SIZE, MAP_WATER_DEPTH));
+    } else {
+        map->water_renderables[COORD(map, x, y)] = MAYBIFY(NULL);
+    }
+}
+
+void map_random_leak(game_t *game, map_t *map) {
+    uint32_t tile_x, tile_y;
+    
+    map_get_random_tile(map, TILE_PRESSURE_HULL, &tile_x, &tile_y);
+    map_update_tile(game, map, tile_x, tile_y, TILE_NOTHING);
+    set_water_level(game, map, tile_x, tile_y, LEAK_WATER_LEVEL, TRUE);
+}
+
 map_t * map_new(const char *name) {
     map_t *map = mem_alloc(sizeof(*map));
     map_init(map, name);
@@ -345,7 +381,65 @@ void map_init_graphics(game_t *game, system_t * system, MAYBE(void *) system_par
             }
         }
     }
+    map_random_leak(game, map);
 }
+
+void diffuse_leak(game_t *game, map_t *map, uint32_t x, uint32_t y) {
+    int i,j;
+    for (i = -1; i <= 1; ++i) {
+        for (j = -1; j <= 1; ++j) {
+            if (map_tile_passable(map, x + j, y + i) && map->water_level[COORD(map,x+j,y+i)] < MAX_WATER_LEVEL) {
+                set_water_level(game, map, x + j, y + i, map->water_level[COORD(map,x+j,y+i)] + 4, FALSE);
+            }
+        }
+    }
+}
+
+void diffuse_water(game_t *game, map_t *map, uint32_t x, uint32_t y) {
+    int i,j;
+    for (i = -1; i <= 1; ++i) {
+        for (j = -1; j <= 1; ++j) {
+            if (map_tile_passable(map, x + j, y + i)) {
+                map->water_delta[COORD(map, x+j, y+i)] += map->water_level[COORD(map,j,i)] / 16;
+                map->water_delta[COORD(map, x, y)] -= map->water_level[COORD(map,j,i)] / 16;
+            }
+        }
+    } 
+}
+
+void map_update_leaks(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    int i,j;
+    map_t *map = (map_t *) UNMAYBE(system_params);
+    if (map->wait_diffuse > 0) {
+        --(map->wait_diffuse);
+        return;
+    }
+    
+    map->wait_diffuse = DIFFUSE_DELAY;
+    for (i = 0; i < map->height; ++i) {
+        for (j = 0; j < map->width; ++j) {
+            if (map->water_level[COORD(map,j,i)] == LEAK_WATER_LEVEL) {
+                diffuse_leak(game, map, j, i);
+            }
+        }
+    }
+    for (i = 0; i < map->height; ++i) {
+        for (j = 0; j < map->width; ++j) {
+            if (map->water_level[COORD(map,j,i)] > 16) {
+                diffuse_leak(game, map, j, i);
+            }
+        }
+    }
+    for (i = 0; i < map->height; ++i) {
+        for (j = 0; j < map->width; ++j) {
+            if (map_tile_passable(map, j, i)) {
+                set_water_level(game, map, j, i, map->water_level[COORD(map,j,i)] + map->water_delta[COORD(map,j,i)], FALSE);
+                map->water_delta[COORD(map,j,i)] = 0;
+            }
+        }
+    }
+}
+
 
 bool map_start(game_t *game, system_t *system) {
     system->name = SYS_MAP_NAME;
@@ -354,6 +448,7 @@ bool map_start(game_t *game, system_t *system) {
     system->data_free = MAYBIFY_FUNC(map_free);
     
     game_register_hook(game, system, map_init_graphics, MAYBIFY(main_map), EVENT_START, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, map_update_leaks, MAYBIFY(main_map), EVENT_NEW_STEP, MAYBIFY_FUNC(NULL));
     
     return TRUE;
 }

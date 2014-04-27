@@ -231,6 +231,7 @@ void logic_update(game_t *game, system_t * system, MAYBE(void *) system_params, 
         game_state->moving = FALSE;
     }
     
+    
     text_clear_printer(game, "status");
     text_print_line(game, "status", "Status:");
     text_print_line(game, "status", "");
