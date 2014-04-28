@@ -16,6 +16,8 @@
 #include "core/settings.h"
 #include "core/tween.h"
 
+#include "systems/text/text.h"
+
 LOCAL_EVENTS
     sdl_check_input,
     sdl_move_camera_up,
@@ -153,6 +155,12 @@ void sys_SDL_draw(game_t *game, system_t * system, MAYBE(void *) system_params, 
     sys_sdl_data_t *sys_sdl_data = (sys_sdl_data_t *) UNMAYBE(system_params);
     render_manager_animate(&(sys_sdl_data->render_manager));
     render_manager_draw(&(sys_sdl_data->render_manager));
+    text_clear_printer(game, "caption");
+    if (game->paused) {
+        text_print_line(game, "caption", "Paused");
+    } else {
+        text_print_line(game, "caption", "Press space to pause");
+    }
 }
 
 sample_playback_t * sys_SDL_play_sample(game_t *game, const char *sample_name, int volume, bool loop, void **parent_ptr) {
@@ -194,6 +202,11 @@ void set_key_release_from_settings(sys_sdl_data_t *sys_sdl_data, const char *key
     }
 }
 
+void sys_SDL_init(game_t *game, system_t * system, MAYBE(void *) system_params, MAYBE(void *) sender_params) {
+    text_add_printer(game, "caption", 30, 10);
+}
+
+
 bool sdl_start(game_t *game, system_t *system) {
     system->name = SYS_SDL_NAME;
     sys_sdl_data_t *sys_sdl_data = mem_alloc(sizeof(*sys_sdl_data));
@@ -226,6 +239,7 @@ bool sdl_start(game_t *game, system_t *system) {
     
     game_register_hook(game, system, sys_SDL_clean, MAYBIFY(sys_sdl_data), EVENT_EXIT, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_sdl_data), EVENT_START, MAYBIFY_FUNC(NULL));
+    game_register_hook(game, system, sys_SDL_init, MAYBIFY(sys_sdl_data), EVENT_START, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, check_input, MAYBIFY(sys_sdl_data), sdl_check_input, MAYBIFY_FUNC(NULL));
     game_register_hook(game, system, sys_SDL_draw, MAYBIFY(sys_sdl_data), EVENT_NEW_FRAME, MAYBIFY_FUNC(NULL));
     
@@ -246,7 +260,7 @@ bool sdl_start(game_t *game, system_t *system) {
     SDL_RenderSetLogicalSize(sys_sdl_data->ren, GAME_WIDTH, GAME_HEIGHT);
     render_manager_init(&(sys_sdl_data->render_manager), sys_sdl_data->ren);
     sys_sdl_data->render_manager.x_offset = 40;
-    sys_sdl_data->render_manager.y_offset = 40;
+    sys_sdl_data->render_manager.y_offset = 80;
 
     set_key_press_from_settings(sys_sdl_data, "pause_key",          SDLK_p,     EVENT_TOGGLE_PAUSE);
     sys_sdl_data->key_press_events[SDL_GetScancodeFromKey(SDLK_SPACE)] = EVENT_TOGGLE_PAUSE;

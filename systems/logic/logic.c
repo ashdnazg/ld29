@@ -3,8 +3,10 @@
 #include "core/mem_wrap.h"
 #include "core/game.h"
 #include "core/system.h"
+#include "core/tween.h"
 
 #include "systems/sdl/sdl.h"
+#include "systems/sdl/sdl_video.h"
 #include "systems/actors/actors.h"
 #include "systems/map/map.h"
 #include "systems/text/text.h"
@@ -37,6 +39,7 @@ actor_action_t get_controller_action(game_t *game, actor_t *actor, MAYBE(void *)
     game_state_t * game_state = UNMAYBE(ai_params);
     map_translate_coordinates(game_state->current_map, actor->x, actor->y, &actor_tile_x, &actor_tile_y);
     if (map_drowned(actor->map, actor_tile_x, actor_tile_y )) {
+        sys_SDL_play_sample(game, "drown", 20, FALSE, NULL);
         actor_kill(game, actor);
         return ACTOR_ACTION_IDLE;
     }
@@ -127,6 +130,7 @@ actor_action_t get_soldier_action(game_t *game, actor_t *actor, MAYBE(void *) ai
     if (map_in_water(actor->map, actor_tile_x, actor_tile_y )) {
         if (map_drowned(actor->map, actor_tile_x, actor_tile_y )) {
             soldier_ai_params->task = TASK_REGRET;
+            sys_SDL_play_sample(game, "drown", 20, FALSE, NULL);
             actor_kill(game, actor);
             return ACTOR_ACTION_IDLE;
         } else if (soldier_ai_params->task != TASK_SEAL_LEAK){
@@ -305,8 +309,23 @@ void logic_update(game_t *game, system_t * system, MAYBE(void *) system_params, 
         game_state->message = "The enemy ship is sinking!";
     }
     
+    if (game_state->fired) {
+        if (game_state->torpedo != NULL) {
+            renderable_free(game_state->torpedo);
+        }
+        game_state->torpedo = sys_SDL_add_renderable(game, "torpedo", 600, 70, TORPEDO_DEPTH);
+        tween_value_t start;
+        tween_value_t end;
+        start.ival = 600;
+        end.ival = 900;
+        tween_list_add_tween(&(game->tween_list), &(game_state->torpedo->tweens), &(game_state->torpedo->x), TWEEN_TYPE_INT, 100, start, end, TWEEN_IN, quad_tween);
+        sys_SDL_play_sample(game, "torpedo", 20, FALSE, NULL);
+        
+    }
+    
     if (game_state->current_peril == PERIL_SHIP && game_state->fired && game_state->torpedo_delay == 0 && game_state->on_target) {
         game_state->torpedo_delay = TORPEDO_DELAY;
+        
     }
     
     if (game_state->current_peril == PERIL_SHIP && !(rand() % DEPTH_CHARGE_CHANCE)) {
@@ -455,6 +474,7 @@ bool logic_start(game_t *game, system_t *system) {
     game_state->message = NULL;
     game_state->message_delay = 0;
     game_state->torpedo_delay = 0;
+    game_state->torpedo = NULL;
     
     game_state->firing = FALSE;
     game_state->steering = FALSE;

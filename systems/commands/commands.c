@@ -141,7 +141,7 @@ void choose_command(game_t *game, system_t * system, MAYBE(void *) system_params
         if (command_data->current->rules[num].task != TASK_NO_TASK) {
             game_push_event(game, system, commands_send_command, MAYBIFY(command_data->current->rules[num].task));
             
-            command_data->voice = sys_SDL_play_sample(game, get_task_sample(command_data->current->rules[num].task), 40, FALSE, (void **) &(command_data->voice));
+            command_data->voice = sys_SDL_play_sample(game, get_task_sample(command_data->current->rules[num].task), 30, FALSE, (void **) &(command_data->voice));
         }
         command_data->current = command_data->current->rules[num].target;
         command_data->changed = TRUE;

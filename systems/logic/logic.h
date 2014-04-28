@@ -11,6 +11,7 @@ extern "C" {
 
 #include "systems/map/map.h"
 #include "systems/actors/actors.h"
+#include "systems/sdl/sdl_video.h"
 
 #include <stdint.h>
 
@@ -37,6 +38,8 @@ extern "C" {
 
 #define MESSAGE_DELAY (60 * 5)
 #define TORPEDO_DELAY (60 * 2)
+
+#define TORPEDO_DEPTH -10
 
 typedef enum peril_e {
     NO_PERIL,
@@ -115,7 +118,7 @@ typedef struct game_state_s {
     bool fired;
     bool weapons_malfunction;
     bool engine_malfunction;
-    
+    renderable_t *torpedo;
 } game_state_t;
 
 typedef struct soldier_ai_params_s {
