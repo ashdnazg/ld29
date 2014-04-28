@@ -25,6 +25,7 @@ extern "C" {
 #define RGBA 4
 #define TILE_TYPE_MASK   0x00FFFFFF
 #define MAP_DEPTH 0
+#define SEA_DEPTH -5
 #define MAP_WATER_DEPTH 1
 #define TILE_SIZE 10
 
@@ -77,6 +78,7 @@ typedef struct map_s {
     int8_t *water_delta;
     MAYBE(renderable_t *) *water_renderables;
     int wait_diffuse;
+    int8_t *sea_level;
 } map_t;
 
 bool map_find_best_hatch(map_t *map, uint32_t origin_x, uint32_t origin_y, uint32_t *out_hatch_x, uint32_t *out_hatch_y);

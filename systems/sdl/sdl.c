@@ -261,7 +261,9 @@ bool sdl_start(game_t *game, system_t *system) {
     render_manager_init(&(sys_sdl_data->render_manager), sys_sdl_data->ren);
     sys_sdl_data->render_manager.x_offset = 40;
     sys_sdl_data->render_manager.y_offset = 80;
-
+    renderable_t *background = render_manager_create_renderable(&(sys_sdl_data->render_manager), "background", 0 ,0, -5);
+    background->offset = FALSE;
+    
     set_key_press_from_settings(sys_sdl_data, "pause_key",          SDLK_p,     EVENT_TOGGLE_PAUSE);
     sys_sdl_data->key_press_events[SDL_GetScancodeFromKey(SDLK_SPACE)] = EVENT_TOGGLE_PAUSE;
     set_key_press_from_settings(sys_sdl_data, "camera_up_key",      SDLK_UP,    sdl_move_camera_up);

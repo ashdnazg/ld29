@@ -39,7 +39,7 @@ extern "C" {
 #define MESSAGE_DELAY (60 * 5)
 #define TORPEDO_DELAY (60 * 2)
 
-#define TORPEDO_DEPTH -10
+#define TORPEDO_DEPTH -500
 
 typedef enum peril_e {
     NO_PERIL,
