@@ -4,6 +4,7 @@
 #include "core/game.h"
 #include "core/system.h"
 #include "core/tween.h"
+#include "core/settings.h"
 
 #include "systems/sdl/sdl.h"
 #include "systems/sdl/sdl_video.h"
@@ -441,8 +442,11 @@ void logic_startup(game_t *game, system_t * system, MAYBE(void *) system_params,
     game_state->captain = sys_actors_add_actor(game, game_state->current_map, ACTOR_CAPTAIN, x - ACTOR_SIZE / 2, y - ACTOR_SIZE / 2);
     game_state->captain->ai.get_action = MAYBIFY_FUNC(get_controller_action);
     game_state->captain->ai.ai_params = MAYBIFY(game_state);
-    
-    for (i = 0; i < NUM_SOLDIERS; i++) {
+    long num_soldiers = settings_get_long("num_soldiers");
+    if (num_soldiers < 0) {
+        num_soldiers = NUM_SOLDIERS;
+    }
+    for (i = 0; i < num_soldiers; i++) {
         map_get_random_tile(game_state->current_map, TILE_ANYWHERE, &tile_x, &tile_y);
         map_tile_center(game_state->current_map, tile_x, tile_y, &x, &y);
         actor = sys_actors_add_actor(game, game_state->current_map, ACTOR_SOLDIER, x - ACTOR_SIZE / 2, y - ACTOR_SIZE / 2);
