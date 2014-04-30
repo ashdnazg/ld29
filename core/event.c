@@ -33,7 +33,7 @@ void _events_map_import(events_map_t *events_map, system_t *system, const char *
     link_init(&(pending_event_import->pending_event_imports_link));
     pending_event_import->name = name;
     pending_event_import->system = system;
-    pending_event_import->local_index = local_index;
+    pending_event_import->local_index = local_index & 0x3FFFFFFF;
     
     list_insert_tail(&(events_map->pending_event_imports), pending_event_import);
 }

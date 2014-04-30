@@ -51,7 +51,7 @@ void _components_map_import(components_map_t *components_map, system_t *system, 
     link_init(&(pending_component_import->pending_component_imports_link));
     pending_component_import->name = name;
     pending_component_import->system = system;
-    pending_component_import->local_index = local_index;
+    pending_component_import->local_index = local_index & 0x3FFFFFFF;
     
     list_insert_tail(&(components_map->pending_component_imports), pending_component_import);
 }
